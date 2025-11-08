@@ -6,7 +6,7 @@ require('dotenv').config();
 
 const { swaggerUi, specs } = require('./config/swagger');
 const authRoutes = require('./routes/authRoutes');
-const { createUsersTable } = require('./models/userModel');
+const { createUsersTable, updateExistingUsersType, createAdminUser } = require('./models/userModel');
 
 const app = express();
 
@@ -35,6 +35,8 @@ app.get('/health', (req, res) => {
 const initializeDatabase = async () => {
   try {
     await createUsersTable();
+    await updateExistingUsersType();
+    await createAdminUser();
     console.log('Database tables initialized');
   } catch (error) {
     console.error('Database initialization error:', error);
