@@ -5,7 +5,11 @@ const morgan = require('morgan');
 require('dotenv').config();
 
 const { swaggerUi, specs } = require('./config/swagger');
+const pool = require('./config/database');
 const authRoutes = require('./routes/authRoutes');
+const taskRoutes = require('./routes/taskRoutes');
+const userRoutes = require('./routes/userRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 const { createUsersTable, updateExistingUsersType, createAdminUser } = require('./models/userModel');
 
 const app = express();
@@ -25,6 +29,9 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/tasks', taskRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
@@ -35,12 +42,30 @@ app.get('/health', (req, res) => {
 const initializeDatabase = async () => {
   try {
     await createUsersTable();
+    await createTasksTable();
     await updateExistingUsersType();
     await createAdminUser();
     console.log('Database tables initialized');
   } catch (error) {
     console.error('Database initialization error:', error);
   }
+};
+
+// Create tasks table
+const createTasksTable = async () => {
+  const query = `
+    CREATE TABLE IF NOT EXISTS tasks (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      title VARCHAR(255) NOT NULL,
+      description TEXT,
+      priority VARCHAR(50) DEFAULT 'medium',
+      status VARCHAR(50) DEFAULT 'pending',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `;
+  await pool.query(query);
 };
 
 // Start server

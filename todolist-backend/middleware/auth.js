@@ -23,6 +23,19 @@ const authenticateToken = async (req, res, next) => {
       });
     }
 
+    // Check if user account is banned
+    if (user.status === 'banned') {
+      return res.status(403).json({
+        success: false,
+        message: 'Account has been banned. Please contact administrator.',
+      });
+    }
+
+    // Allow pending users to access basic endpoints but restrict others
+    if (user.status === 'pending' && user.user_type !== 'super_admin') {
+      // route restrictions if needed for later use
+    }
+
     req.user = user;
     next();
   } catch (error) {

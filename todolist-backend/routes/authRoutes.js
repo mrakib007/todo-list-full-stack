@@ -1,6 +1,6 @@
 const express = require('express');
 const { signup, login } = require('../controllers/authController');
-const { signupValidation, loginValidation } = require('../middleware/validation');
+const { signupValidation, loginValidation, handleValidationErrors } = require('../middleware/validation');
 
 const router = express.Router();
 
@@ -87,7 +87,7 @@ const router = express.Router();
  *       500:
  *         description: Internal server error
  */
-router.post('/signup', signupValidation, signup);
+router.post('/signup', signupValidation, handleValidationErrors, signup);
 
 /**
  * @swagger
@@ -124,6 +124,6 @@ router.post('/signup', signupValidation, signup);
  *       500:
  *         description: Internal server error
  */
-router.post('/login', loginValidation, login);
+router.post('/login', loginValidation, handleValidationErrors, login);
 
 module.exports = router;
