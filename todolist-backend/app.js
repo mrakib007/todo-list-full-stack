@@ -6,6 +6,9 @@ require('dotenv').config();
 
 const { swaggerUi, specs } = require('./config/swagger');
 const authRoutes = require('./routes/authRoutes');
+const taskRoutes = require('./routes/taskRoutes');
+const userRoutes = require('./routes/userRoutes');
+const { authenticateToken } = require('./middleware/auth');
 const { createUsersTable, updateExistingUsersType, createAdminUser } = require('./models/userModel');
 
 const app = express();
@@ -25,6 +28,8 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/tasks', authenticateToken, taskRoutes);
+app.use('/api/users', authenticateToken, userRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

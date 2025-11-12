@@ -82,12 +82,46 @@ const getAllUsers = async () => {
   return result.rows;
 };
 
+const findUserById = async (userId) => {
+  const query = 'SELECT id, email, name, user_type, created_at FROM users WHERE id = $1';
+  const result = await pool.query(query, [userId]);
+  return result.rows[0];
+};
+
+const updateUser = async (userId, updates) => {
+  const { name, email } = updates;
+  const query = `
+    UPDATE users 
+    SET name = COALESCE($2, name),
+        email = COALESCE($3, email),
+        updated_at = NOW()
+    WHERE id = $1
+    RETURNING id, email, name, user_type, created_at
+  `;
+  const result = await pool.query(query, [userId, name, email]);
+  return result.rows[0];
+};
+
+const updateUserPassword = async (userId, hashedPassword) => {
+  const query = `
+    UPDATE users 
+    SET password = $2, updated_at = NOW()
+    WHERE id = $1
+    RETURNING id, email, name, user_type, created_at
+  `;
+  const result = await pool.query(query, [userId, hashedPassword]);
+  return result.rows[0];
+};
+
 module.exports = {
   createUsersTable,
   createUser,
   findUserByEmail,
+  findUserById,
   comparePassword,
   createAdminUser,
   updateExistingUsersType,
   getAllUsers,
+  updateUser,
+  updateUserPassword,
 };

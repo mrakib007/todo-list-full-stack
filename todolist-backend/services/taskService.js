@@ -87,6 +87,75 @@ const taskService = {
       throw new Error('Task not found');
     }
     return updatedTask;
+  },
+
+  // Get task statistics
+  getTaskStatistics: async (userId) => {
+    return await taskModel.getTaskStatistics(userId);
+  },
+
+  // Search tasks
+  searchTasks: async (userId, searchQuery) => {
+    if (!searchQuery || searchQuery.trim() === '') {
+      throw new Error('Search query is required');
+    }
+    return await taskModel.searchTasks(userId, searchQuery.trim());
+  },
+
+  // Get tasks with filters and sorting
+  getTasksWithFilters: async (userId, filters) => {
+    const { status, priority, sortBy, sortOrder } = filters;
+
+    if (status) {
+      const validStatuses = ['pending', 'in_progress', 'completed', 'cancelled'];
+      if (!validStatuses.includes(status)) {
+        throw new Error('Invalid status. Must be: pending, in_progress, completed, or cancelled');
+      }
+    }
+
+    if (priority) {
+      const validPriorities = ['low', 'medium', 'high', 'urgent'];
+      if (!validPriorities.includes(priority)) {
+        throw new Error('Invalid priority. Must be: low, medium, high, or urgent');
+      }
+    }
+
+    return await taskModel.findWithFilters(userId, { status, priority, sortBy, sortOrder });
+  },
+
+  // Bulk delete tasks
+  bulkDeleteTasks: async (userId, taskIds) => {
+    if (!Array.isArray(taskIds) || taskIds.length === 0) {
+      throw new Error('Task IDs array is required and must not be empty');
+    }
+
+    // Validate all IDs are numbers
+    const validIds = taskIds.filter(id => Number.isInteger(Number(id)));
+    if (validIds.length === 0) {
+      throw new Error('No valid task IDs provided');
+    }
+
+    return await taskModel.bulkDelete(userId, validIds);
+  },
+
+  // Bulk update task status
+  bulkUpdateTaskStatus: async (userId, taskIds, status) => {
+    if (!Array.isArray(taskIds) || taskIds.length === 0) {
+      throw new Error('Task IDs array is required and must not be empty');
+    }
+
+    const validStatuses = ['pending', 'in_progress', 'completed', 'cancelled'];
+    if (!validStatuses.includes(status)) {
+      throw new Error('Invalid status. Must be: pending, in_progress, completed, or cancelled');
+    }
+
+    // Validate all IDs are numbers
+    const validIds = taskIds.filter(id => Number.isInteger(Number(id)));
+    if (validIds.length === 0) {
+      throw new Error('No valid task IDs provided');
+    }
+
+    return await taskModel.bulkUpdateStatus(userId, validIds, status);
   }
 };
 

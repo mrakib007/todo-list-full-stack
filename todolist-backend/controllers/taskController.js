@@ -31,11 +31,20 @@ const taskController = {
     }
   },
 
-  // Get all tasks for user
+  // Get all tasks for user 
   getTasks: async (req, res) => {
     try {
       const userId = req.user.id;
-      const { status } = req.query;
+      const { status, priority, sortBy, sortOrder } = req.query;
+
+      if (priority || sortBy) {
+        const tasks = await taskService.getTasksWithFilters(userId, { status, priority, sortBy, sortOrder });
+        return res.json({
+          success: true,
+          count: tasks.length,
+          data: tasks
+        });
+      }
 
       const tasks = await taskService.getUserTasks(userId, status);
       
@@ -150,6 +159,118 @@ const taskController = {
     } catch (error) {
       const statusCode = error.message === 'Task not found' ? 404 : 400;
       res.status(statusCode).json({ 
+        success: false,
+        error: error.message 
+      });
+    }
+  },
+
+  // Get task statistics
+  getTaskStatistics: async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const stats = await taskService.getTaskStatistics(userId);
+      
+      res.json({
+        success: true,
+        data: stats
+      });
+    } catch (error) {
+      res.status(400).json({ 
+        success: false,
+        error: error.message 
+      });
+    }
+  },
+
+  // Search tasks
+  searchTasks: async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const { q } = req.query;
+
+      if (!q) {
+        return res.status(400).json({ 
+          success: false,
+          error: 'Search query parameter "q" is required' 
+        });
+      }
+
+      const tasks = await taskService.searchTasks(userId, q);
+      
+      res.json({
+        success: true,
+        count: tasks.length,
+        data: tasks
+      });
+    } catch (error) {
+      res.status(400).json({ 
+        success: false,
+        error: error.message 
+      });
+    }
+  },
+
+  // Bulk delete tasks
+  bulkDeleteTasks: async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const { taskIds } = req.body;
+
+      if (!taskIds || !Array.isArray(taskIds)) {
+        return res.status(400).json({ 
+          success: false,
+          error: 'taskIds array is required' 
+        });
+      }
+
+      const deletedTasks = await taskService.bulkDeleteTasks(userId, taskIds);
+      
+      res.json({
+        success: true,
+        message: `${deletedTasks.length} task(s) deleted successfully`,
+        count: deletedTasks.length,
+        data: deletedTasks
+      });
+    } catch (error) {
+      res.status(400).json({ 
+        success: false,
+        error: error.message 
+      });
+    }
+  },
+
+  // Bulk update task status
+  bulkUpdateTaskStatus: async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ 
+          success: false,
+          errors: errors.array() 
+        });
+      }
+
+      const userId = req.user.id;
+      const { taskIds, status } = req.body;
+
+      if (!taskIds || !Array.isArray(taskIds)) {
+        return res.status(400).json({ 
+          success: false,
+          error: 'taskIds array is required' 
+        });
+      }
+
+      const updatedTasks = await taskService.bulkUpdateTaskStatus(userId, taskIds, status);
+      
+      res.json({
+        success: true,
+        message: `${updatedTasks.length} task(s) status updated successfully`,
+        count: updatedTasks.length,
+        data: updatedTasks
+      });
+    } catch (error) {
+      res.status(400).json({ 
         success: false,
         error: error.message 
       });
