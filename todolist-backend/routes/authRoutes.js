@@ -1,6 +1,7 @@
 const express = require('express');
-const { signup, login } = require('../controllers/authController');
+const { signup, login, verifyToken } = require('../controllers/authController');
 const { signupValidation, loginValidation, handleValidationErrors } = require('../middleware/validation');
+const { authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -125,5 +126,37 @@ router.post('/signup', signupValidation, handleValidationErrors, signup);
  *         description: Internal server error
  */
 router.post('/login', loginValidation, handleValidationErrors, login);
+
+/**
+ * @swagger
+ * /api/auth/verify:
+ *   get:
+ *     summary: Verify if the authentication token is valid
+ *     tags: [Authentication]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Token is valid
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     user:
+ *                       $ref: '#/components/schemas/User'
+ *       401:
+ *         description: Invalid or expired token
+ *       403:
+ *         description: Account banned
+ */
+router.get('/verify', authenticateToken, verifyToken);
 
 module.exports = router;

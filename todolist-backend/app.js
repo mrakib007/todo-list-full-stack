@@ -11,6 +11,7 @@ const taskRoutes = require('./routes/taskRoutes');
 const userRoutes = require('./routes/userRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const { authenticateToken } = require('./middleware/auth');
+const { notFoundHandler, errorHandler } = require('./middleware/errorHandler');
 const { createUsersTable, updateExistingUsersType, createAdminUser } = require('./models/userModel');
 
 const app = express();
@@ -39,7 +40,12 @@ app.get('/health', (req, res) => {
   res.json({ status: 'OK', message: 'Server is running' });
 });
 
-// Initialize database tables
+// 404 handler for undefined routes 
+app.use(notFoundHandler);
+
+// Global error handler 
+app.use(errorHandler);
+
 const initializeDatabase = async () => {
   try {
     await createUsersTable();

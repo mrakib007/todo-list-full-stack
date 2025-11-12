@@ -70,6 +70,14 @@ const login = async (req, res) => {
       });
     }
 
+    // Check if user account is banned
+    if (user.status === 'banned') {
+      return res.status(403).json({
+        success: false,
+        message: 'Account has been banned. Please contact administrator.',
+      });
+    }
+
     const isPasswordValid = await comparePassword(password, user.password);
     if (!isPasswordValid) {
       return res.status(401).json({
@@ -89,6 +97,7 @@ const login = async (req, res) => {
           email: user.email,
           name: user.name,
           user_type: user.user_type,
+          status: user.status,
         },
         token,
       },
@@ -102,7 +111,32 @@ const login = async (req, res) => {
   }
 };
 
+const verifyToken = async (req, res) => {
+  try {
+    res.json({
+      success: true,
+      message: 'Token is valid',
+      data: {
+        user: {
+          id: req.user.id,
+          email: req.user.email,
+          name: req.user.name,
+          user_type: req.user.user_type,
+          status: req.user.status,
+        },
+      },
+    });
+  } catch (error) {
+    console.error('Verify token error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+
 module.exports = {
   signup,
   login,
+  verifyToken,
 };
