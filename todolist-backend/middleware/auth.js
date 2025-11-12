@@ -14,7 +14,7 @@ const authenticateToken = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const query = 'SELECT id, email, name, user_type, created_at FROM users WHERE id = $1';
+    const query = 'SELECT id, email, name, user_type, status, created_at FROM users WHERE id = $1';
     const result = await pool.query(query, [decoded.userId]);
     const user = result.rows[0];
     
@@ -23,6 +23,19 @@ const authenticateToken = async (req, res, next) => {
         success: false,
         message: 'Invalid token',
       });
+    }
+
+    // Check if user account is banned
+    if (user.status === 'banned') {
+      return res.status(403).json({
+        success: false,
+        message: 'Account has been banned. Please contact administrator.',
+      });
+    }
+
+    // Allow pending users to access basic endpoints but restrict others
+    if (user.status === 'pending' && user.user_type !== 'super_admin') {
+      // route restrictions if needed for later use
     }
 
     req.user = user;

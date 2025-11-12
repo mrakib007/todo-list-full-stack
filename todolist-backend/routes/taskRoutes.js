@@ -1,7 +1,7 @@
 const express = require('express');
 const { body } = require('express-validator');
 const taskController = require('../controllers/taskController');
-// const authMiddleware = require('../middleware/authMiddleware'); // Uncomment when you have auth middleware
+const { authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -56,8 +56,7 @@ const updateStatusValidation = [
         .withMessage('Status must be: pending, in_progress, completed, or cancelled')
 ];
 
-// Apply auth middleware to all routes (uncomment when ready)
-// router.use(authMiddleware);
+router.use(authenticateToken);
 
 /**
  * @swagger

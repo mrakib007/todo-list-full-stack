@@ -64,7 +64,7 @@ router.get('/', authenticateToken, getUserList);
  *       401:
  *         description: Unauthorized
  */
-router.get('/profile', getUserProfile);
+router.get('/profile', authenticateToken, getUserProfile);
 
 /**
  * @swagger
@@ -106,7 +106,7 @@ router.get('/profile', getUserProfile);
  *       401:
  *         description: Unauthorized
  */
-router.put('/profile', updateProfileValidation, updateUserProfile);
+router.put('/profile', authenticateToken, updateProfileValidation, updateUserProfile);
 
 /**
  * @swagger
@@ -148,6 +148,6 @@ router.put('/profile', updateProfileValidation, updateUserProfile);
  *       401:
  *         description: Unauthorized or current password incorrect
  */
-router.put('/password', changePasswordValidation, changePassword);
+router.put('/password', authenticateToken, changePasswordValidation, changePassword);
 
 module.exports = router;
