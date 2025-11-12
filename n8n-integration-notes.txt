@@ -1,0 +1,63 @@
+N8N INTEGRATION POINTS FOR TODO-LIST PROJECT
+=============================================
+
+WHERE TO ADD N8N:
+------------------
+
+1. WEBHOOK-BASED AUTOMATION (Recommended for practice)
+   Location: Backend controllers
+   - Add webhook calls in: todolist-backend/controllers/taskController.js
+   - After task creation, update, completion, deletion
+   - n8n listens via HTTP Request webhook node
+   - Example: POST to n8n webhook URL after task operations
+
+2. SCHEDULED AUTOMATION
+   Location: n8n workflows (external)
+   - Daily task summaries
+   - Weekly reports
+   - Auto-cleanup of old tasks
+   - Reminder notifications
+   - n8n Schedule node → Poll your API → Process → Actions
+
+3. NOTIFICATION AUTOMATION
+   Location: n8n workflows triggered by webhooks
+   - Email notifications (Gmail, SMTP)
+   - Slack/Discord messages
+   - SMS reminders
+   - Triggered when tasks are created/completed/overdue
+
+4. EXTERNAL SERVICE INTEGRATIONS
+   Location: n8n workflows
+   - Google Calendar sync
+   - Trello card creation
+   - Notion exports
+   - Social media posts
+   - Other todo apps
+
+5. SMART AUTOMATION
+   Location: n8n conditional workflows
+   - Auto-escalate overdue tasks
+   - Auto-complete based on external triggers
+   - Auto-categorize tasks
+   - Auto-create follow-up tasks
+
+IMPLEMENTATION APPROACH:
+------------------------
+- Option A: Add webhook calls in backend controllers (taskController.js, authController.js)
+- Option B: n8n polls your API endpoints on schedule
+- Option C: Hybrid (webhooks for real-time + scheduled for reports)
+
+SUGGESTED STARTING POINTS:
+--------------------------
+1. Simple: Scheduled daily task summary email
+2. Simple: Webhook → Email when high-priority task created
+3. Intermediate: Google Calendar sync
+4. Advanced: Multi-service integrations
+
+ARCHITECTURE:
+-------------
+- n8n can be self-hosted (Docker) or cloud
+- Webhook endpoints need authentication tokens
+- Backend API: http://localhost:3000/api
+- Frontend: http://localhost:3001
+

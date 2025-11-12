@@ -22,12 +22,6 @@ export default function Profile() {
     confirmPassword: '',
   })
 
-  if (isLoading) {
-    return <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="text-center">Loading...</div>
-    </div>
-  }
-
   const user = profileData?.data || {}
 
   // Initialize form when user data loads
@@ -39,6 +33,12 @@ export default function Profile() {
       })
     }
   }, [user])
+
+  if (isLoading) {
+    return <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="text-center">Loading...</div>
+    </div>
+  }
 
   const handleProfileSubmit = async (e) => {
     e.preventDefault()
