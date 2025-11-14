@@ -4,13 +4,15 @@ import TaskCard from '../components/tasks/TaskCard'
 import TaskForm from '../components/tasks/TaskForm'
 import TaskFilters from '../components/tasks/TaskFilters'
 import TaskStats from '../components/tasks/TaskStats'
-import { Plus } from 'lucide-react'
+import KanbanBoard from '../components/tasks/KanbanBoard'
+import { Plus, Grid3x3, LayoutGrid, ClipboardList, Search } from 'lucide-react'
 
 export default function Dashboard() {
   const [showTaskForm, setShowTaskForm] = useState(false)
   const [editingTask, setEditingTask] = useState(null)
   const [filters, setFilters] = useState({})
   const [searchQuery, setSearchQuery] = useState('')
+  const [viewMode, setViewMode] = useState('kanban') // 'grid' or 'kanban'
   
   const { data: tasksData, isLoading: tasksLoading } = useGetTasksQuery(filters, {
     skip: !!searchQuery,
@@ -52,13 +54,39 @@ export default function Dashboard() {
             <h1 className="text-3xl font-bold text-gray-900">My Tasks</h1>
             <p className="mt-2 text-gray-600">Manage and track your tasks</p>
           </div>
-          <button
-            onClick={() => setShowTaskForm(true)}
-            className="btn-primary flex items-center gap-2"
-          >
-            <Plus className="h-5 w-5" />
-            New Task
-          </button>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1 bg-white rounded-lg p-1 border border-gray-200">
+              <button
+                onClick={() => setViewMode('kanban')}
+                className={`p-2 rounded transition-colors ${
+                  viewMode === 'kanban'
+                    ? 'bg-primary-100 text-primary-600'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+                title="Kanban View"
+              >
+                <LayoutGrid className="h-5 w-5" />
+              </button>
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`p-2 rounded transition-colors ${
+                  viewMode === 'grid'
+                    ? 'bg-primary-100 text-primary-600'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+                title="Grid View"
+              >
+                <Grid3x3 className="h-5 w-5" />
+              </button>
+            </div>
+            <button
+              onClick={() => setShowTaskForm(true)}
+              className="btn-primary flex items-center gap-2"
+            >
+              <Plus className="h-5 w-5" />
+              New Task
+            </button>
+          </div>
         </div>
 
         <TaskStats />
@@ -69,25 +97,70 @@ export default function Dashboard() {
         />
 
         {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="card animate-pulse">
-                <div className="h-32 bg-gray-200 rounded"></div>
-              </div>
-            ))}
-          </div>
+          viewMode === 'kanban' ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="card animate-pulse">
+                  <div className="h-96 bg-gray-200 rounded"></div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="card animate-pulse">
+                  <div className="h-32 bg-gray-200 rounded"></div>
+                </div>
+              ))}
+            </div>
+          )
         ) : tasks && tasks.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {tasks.map((task) => (
-              <TaskCard key={task.id} task={task} onEdit={handleEdit} />
-            ))}
-          </div>
+          viewMode === 'kanban' ? (
+            <KanbanBoard tasks={tasks} onEdit={handleEdit} />
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {tasks.map((task) => (
+                <TaskCard key={task.id} task={task} onEdit={handleEdit} />
+              ))}
+            </div>
+          )
         ) : (
-          <div className="card text-center py-12">
-            <p className="text-gray-500 text-lg">No tasks found</p>
-            <p className="text-gray-400 text-sm mt-2">
-              {searchQuery ? 'Try a different search term' : 'Create your first task to get started'}
+          <div className="flex flex-col items-center justify-center py-16 px-4">
+            <div className="relative mb-6">
+              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary-100 to-primary-200 flex items-center justify-center shadow-lg">
+                {searchQuery ? (
+                  <Search className="h-12 w-12 text-primary-600" />
+                ) : (
+                  <ClipboardList className="h-12 w-12 text-primary-600" />
+                )}
+              </div>
+              <div className="absolute -top-2 -right-2 w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center shadow-md">
+                <Plus className="h-5 w-5 text-white" />
+              </div>
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              {searchQuery ? 'No tasks match your search' : 'No tasks yet'}
+            </h3>
+            <p className="text-gray-500 text-center max-w-md mb-6">
+              {searchQuery ? (
+                <>
+                  We couldn't find any tasks matching <span className="font-medium">"{searchQuery}"</span>
+                  <br />
+                  Try adjusting your search terms
+                </>
+              ) : (
+                'Get started by creating your first task. Organize your work and stay productive!'
+              )}
             </p>
+            {!searchQuery && (
+              <button
+                onClick={() => setShowTaskForm(true)}
+                className="btn-primary flex items-center gap-2 shadow-md hover:shadow-lg transition-shadow"
+              >
+                <Plus className="h-5 w-5" />
+                Create Your First Task
+              </button>
+            )}
           </div>
         )}
 
