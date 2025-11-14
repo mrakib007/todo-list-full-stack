@@ -3,7 +3,8 @@ const { authenticateToken } = require('../middleware/auth');
 const { 
   getUserList, 
   updateUserStatus, 
-  getUserStats 
+  getUserStats,
+  deleteUser
 } = require('../controllers/adminController');
 
 const router = express.Router();
@@ -74,5 +75,31 @@ router.patch('/users/:id/status', updateUserStatus);
  *         description: Statistics retrieved successfully
  */
 router.get('/stats', getUserStats);
+
+/**
+ * @swagger
+ * /api/admin/users/{id}:
+ *   delete:
+ *     summary: Delete a user (Admin only, cannot delete self)
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: User deleted successfully
+ *       404:
+ *         description: User not found
+ *       400:
+ *         description: Cannot delete your own account
+ *       403:
+ *         description: Access denied
+ */
+router.delete('/users/:id', deleteUser);
 
 module.exports = router;

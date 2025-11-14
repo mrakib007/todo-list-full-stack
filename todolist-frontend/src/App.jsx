@@ -4,7 +4,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { useVerifyTokenQuery } from './store/api/authApi'
 import { setCredentials, logout } from './store/slices/authSlice'
 import ProtectedRoute from './components/layout/ProtectedRoute'
-import Navbar from './components/layout/Navbar'
+import Sidebar from './components/layout/Navbar'
 import Login from './components/auth/Login'
 import Signup from './components/auth/Signup'
 import Dashboard from './pages/Dashboard'
@@ -13,18 +13,18 @@ import Admin from './pages/Admin'
 
 function App() {
   const dispatch = useDispatch()
-  const { token, isAuthenticated } = useSelector((state) => state.auth)
+  const { token, isAuthenticated, user } = useSelector((state) => state.auth)
   const { data, error, isLoading } = useVerifyTokenQuery(undefined, {
-    skip: !token,
+    skip: !token || !!user, // Skip if we already have user data (from fresh login)
   })
 
   useEffect(() => {
-    if (token && data?.data) {
+    if (token && data?.data && !user) {
       dispatch(setCredentials({ user: data.data.user, token }))
     } else if (token && error) {
       dispatch(logout())
     }
-  }, [data, error, token, dispatch])
+  }, [data, error, token, dispatch, user])
 
   if (isLoading && token) {
     return (
@@ -39,43 +39,45 @@ function App() {
 
   return (
     <div className="min-h-screen">
-      {isAuthenticated && <Navbar />}
-      <Routes>
-        <Route
-          path="/login"
-          element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />}
-        />
-        <Route
-          path="/signup"
-          element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Signup />}
-        />
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/profile"
-          element={
-            <ProtectedRoute>
-              <Profile />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin"
-          element={
-            <ProtectedRoute adminOnly>
-              <Admin />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="/" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />} />
-        <Route path="*" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />} />
-      </Routes>
+      {isAuthenticated && <Sidebar />}
+      <div className={isAuthenticated ? 'lg:ml-64 pt-16 lg:pt-0' : ''}>
+        <Routes>
+          <Route
+            path="/login"
+            element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />}
+          />
+          <Route
+            path="/signup"
+            element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Signup />}
+          />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute adminOnly>
+                <Admin />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />} />
+          <Route path="*" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />} />
+        </Routes>
+      </div>
     </div>
   )
 }

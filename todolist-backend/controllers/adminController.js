@@ -2,7 +2,8 @@ const {
   getAllUsers, 
   updateUserStatus: updateUserStatusModel,
   getUserById,
-  getUserStats: getUserStatsModel
+  getUserStats: getUserStatsModel,
+  deleteUser: deleteUserModel
 } = require('../models/userModel');
 
 const getUserList = async (req, res) => {
@@ -115,8 +116,56 @@ const getUserStats = async (req, res) => {
   }
 };
 
+const deleteUser = async (req, res) => {
+  try {
+    if (req.user.user_type !== 'super_admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Admin privileges required.',
+      });
+    }
+
+    const { id } = req.params;
+
+    // Check if user exists
+    const user = await getUserById(id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
+    // Prevent admin from deleting themselves
+    if (parseInt(id) === req.user.id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot delete your own account',
+      });
+    }
+
+    // Delete user (tasks will be deleted automatically due to CASCADE)
+    const deletedUser = await deleteUserModel(id);
+
+    res.json({
+      success: true,
+      message: 'User deleted successfully',
+      data: {
+        user: deletedUser,
+      },
+    });
+  } catch (error) {
+    console.error('Delete user error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+
 module.exports = {
   getUserList,
   updateUserStatus,
   getUserStats,
+  deleteUser,
 };

@@ -18,6 +18,13 @@ export const adminApi = apiSlice.injectEndpoints({
       query: () => '/admin/stats',
       providesTags: ['Stats'],
     }),
+    deleteUser: builder.mutation({
+      query: (id) => ({
+        url: `/admin/users/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['User', 'Stats'],
+    }),
   }),
 })
 
@@ -25,5 +32,6 @@ export const {
   useGetAdminUsersQuery,
   useUpdateUserStatusMutation,
   useGetAdminStatsQuery,
+  useDeleteUserMutation,
 } = adminApi
 

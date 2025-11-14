@@ -165,6 +165,12 @@ const updateUserPassword = async (userId, hashedPassword) => {
   return result.rows[0];
 };
 
+const deleteUser = async (userId) => {
+  const query = 'DELETE FROM users WHERE id = $1 RETURNING id, email, name, user_type, status';
+  const result = await pool.query(query, [userId]);
+  return result.rows[0];
+};
+
 module.exports = {
   createUsersTable,
   createUser,
@@ -180,4 +186,5 @@ module.exports = {
   updateUserPassword,
   updateUserStatus,
   getUserStats,
+  deleteUser,
 };

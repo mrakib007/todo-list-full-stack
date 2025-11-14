@@ -1,12 +1,14 @@
-import { useState } from 'react'
-import { useGetAdminUsersQuery, useUpdateUserStatusMutation, useGetAdminStatsQuery } from '../store/api/adminApi'
-import { Shield, CheckCircle, XCircle, Clock } from 'lucide-react'
+import { useSelector } from 'react-redux'
+import { useGetAdminUsersQuery, useUpdateUserStatusMutation, useGetAdminStatsQuery, useDeleteUserMutation } from '../store/api/adminApi'
+import { Shield, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 export default function Admin() {
+  const { user: currentUser } = useSelector((state) => state.auth)
   const { data: usersData, isLoading: usersLoading } = useGetAdminUsersQuery()
   const { data: statsData, isLoading: statsLoading } = useGetAdminStatsQuery()
   const [updateUserStatus] = useUpdateUserStatusMutation()
+  const [deleteUser] = useDeleteUserMutation()
 
   const handleStatusChange = async (userId, newStatus) => {
     try {
@@ -14,6 +16,19 @@ export default function Admin() {
       toast.success('User status updated')
     } catch (error) {
       toast.error(error?.data?.message || 'Failed to update user status')
+    }
+  }
+
+  const handleDeleteUser = async (userId, userName) => {
+    if (!window.confirm(`Are you sure you want to delete user "${userName}"? This action cannot be undone and will also delete all their tasks.`)) {
+      return
+    }
+
+    try {
+      await deleteUser(userId).unwrap()
+      toast.success('User deleted successfully')
+    } catch (error) {
+      toast.error(error?.data?.message || 'Failed to delete user')
     }
   }
 
@@ -116,15 +131,26 @@ export default function Admin() {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <select
-                          value={user.status}
-                          onChange={(e) => handleStatusChange(user.id, e.target.value)}
-                          className="text-xs border border-gray-300 rounded px-2 py-1"
-                        >
-                          <option value="pending">Pending</option>
-                          <option value="active">Active</option>
-                          <option value="banned">Banned</option>
-                        </select>
+                        <div className="flex items-center gap-2">
+                          <select
+                            value={user.status}
+                            onChange={(e) => handleStatusChange(user.id, e.target.value)}
+                            className="text-xs border border-gray-300 rounded px-2 py-1"
+                          >
+                            <option value="pending">Pending</option>
+                            <option value="active">Active</option>
+                            <option value="banned">Banned</option>
+                          </select>
+                          {currentUser?.id !== user.id && (
+                            <button
+                              onClick={() => handleDeleteUser(user.id, user.name)}
+                              className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
+                              title="Delete user"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
