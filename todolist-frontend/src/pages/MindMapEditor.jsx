@@ -13,11 +13,17 @@ import 'reactflow/dist/style.css'
 import { useGetMindMapByIdQuery, useCreateMindMapMutation, useUpdateMindMapMutation } from '../store/api/mindMapApi'
 import { Save, X, Plus, Trash2, Loader2 } from 'lucide-react'
 import toast from 'react-hot-toast'
+import EditableNode from '../components/mindmap/EditableNode'
+
+// Register custom node type
+const nodeTypes = {
+  editable: EditableNode,
+}
 
 const initialNodes = [
   {
     id: '1',
-    type: 'input',
+    type: 'editable',
     data: { label: 'Start Here' },
     position: { x: 250, y: 100 },
   },
@@ -50,10 +56,20 @@ export default function MindMapEditor() {
       setDescription(mindMap.description || '')
       
       if (mindMap.data?.nodes && mindMap.data.nodes.length > 0) {
-        setNodes(mindMap.data.nodes)
+        // Ensure all nodes have the editable type
+        const nodesWithType = mindMap.data.nodes.map((node) => ({
+          ...node,
+          type: 'editable', // Force all nodes to be editable
+        }))
+        setNodes(nodesWithType)
+      } else {
+        // If no nodes exist, use initial node
+        setNodes(initialNodes)
       }
       if (mindMap.data?.edges && mindMap.data.edges.length > 0) {
         setEdges(mindMap.data.edges)
+      } else {
+        setEdges(initialEdges)
       }
     }
   }, [mindMapData, isNew, setNodes, setEdges])
@@ -66,6 +82,7 @@ export default function MindMapEditor() {
   const handleAddNode = () => {
     const newNode = {
       id: `${Date.now()}`,
+      type: 'editable',
       data: { label: 'New Node' },
       position: {
         x: Math.random() * 500 + 100,
@@ -216,6 +233,7 @@ export default function MindMapEditor() {
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
+          nodeTypes={nodeTypes}
           fitView
         >
           <Background />
