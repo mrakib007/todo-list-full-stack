@@ -30,13 +30,13 @@ function DroppableColumn({ id, status, children, config, taskCount, isEmpty }) {
   return (
     <div
       ref={setNodeRef}
-      className={`flex flex-col h-full min-h-[500px] rounded-lg border-2 ${
+      className={`flex flex-col rounded-lg border-2 ${
         isOver ? 'border-primary-400 border-4' : config.color
-      }`}
+      } ${isEmpty ? 'min-h-[400px]' : ''}`}
     >
       {/* Column Header */}
       <div
-        className={`flex items-center gap-2 px-4 py-3 rounded-t-lg ${config.headerColor} font-semibold`}
+        className={`flex items-center gap-2 px-4 py-3 rounded-t-lg ${config.headerColor} font-semibold flex-shrink-0`}
       >
         <Icon className="h-5 w-5" />
         <span>{config.label}</span>
@@ -46,12 +46,9 @@ function DroppableColumn({ id, status, children, config, taskCount, isEmpty }) {
       </div>
 
       {/* Droppable Area */}
-      <div
-        className="flex-1 p-3 space-y-3 overflow-y-auto"
-        style={{ minHeight: '400px' }}
-      >
+      <div className="p-3 space-y-3">
         {isEmpty ? (
-          <div className="flex flex-col items-center justify-center py-12 px-4 h-full min-h-[300px]">
+          <div className="flex flex-col items-center justify-center py-12 px-4 min-h-[300px]">
             <div className="relative mb-4">
               <div className={`w-16 h-16 rounded-full ${config.headerColor} flex items-center justify-center opacity-20`}>
                 <Icon className="h-8 w-8" />
@@ -180,7 +177,7 @@ export default function KanbanBoard({ tasks, onEdit }) {
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
         {statusOrder.map((status) => {
           const config = statusConfig[status]
           const columnTasks = tasksByStatus[status] || []
