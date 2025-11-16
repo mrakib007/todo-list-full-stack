@@ -76,9 +76,9 @@ const taskService = {
 
     const cleanUpdates = {
       title: title?.trim(),
-      description: description?.trim(),
-      priority,
-      status,
+      description: description !== undefined ? (description?.trim() || '') : undefined,
+      priority: priority !== undefined ? priority : undefined,
+      status: status !== undefined ? status : undefined,
       due_date: dueDate
     };
 

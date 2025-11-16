@@ -1,7 +1,7 @@
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useUpdateTaskStatusMutation, useDeleteTaskMutation } from '../../store/api/taskApi'
-import { CheckCircle2, Circle, Trash2, Edit, Clock, XCircle, Calendar, AlertCircle } from 'lucide-react'
+import { CheckCircle2, Circle, Trash2, Edit, Clock, XCircle, Calendar, AlertCircle, GripVertical } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useState } from 'react'
 
@@ -38,7 +38,10 @@ export default function DraggableTaskCard({ task, onEdit }) {
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: task.id })
+  } = useSortable({ 
+    id: task.id,
+    disabled: false,
+  })
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -74,51 +77,67 @@ export default function DraggableTaskCard({ task, onEdit }) {
     }
   }
 
+  // Separate drag handle from the card
   return (
     <div
       ref={setNodeRef}
       style={style}
-      {...attributes}
-      {...listeners}
-      className={`card hover:shadow-lg transition-shadow cursor-grab active:cursor-grabbing ${isOverdue ? 'border-l-4 border-red-500' : ''}`}
+      className={`card hover:shadow-lg transition-shadow relative ${isOverdue ? 'border-l-4 border-red-500' : ''}`}
     >
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-2 flex-wrap">
-            <StatusIcon className={`h-4 w-4 ${statusColors[task.status]?.split(' ')[0]}`} />
-            <h3 className="text-base font-semibold text-gray-900">{task.title}</h3>
-            {isOverdue && (
-              <span className="px-1.5 py-0.5 text-xs font-medium rounded-full bg-red-100 text-red-800 flex items-center gap-1">
-                <AlertCircle className="h-3 w-3" />
-                Overdue
-              </span>
-            )}
-          </div>
-          {task.description && (
-            <p className="text-gray-600 text-sm mb-2 line-clamp-2">{task.description}</p>
+      {/* Drag handle icon - top right */}
+      <div 
+        {...attributes} 
+        {...listeners}
+        className="absolute top-2 right-2 p-1.5 cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 transition-colors z-10 rounded hover:bg-gray-100"
+        title="Drag to reorder"
+      >
+        <GripVertical className="h-4 w-4" />
+      </div>
+
+      {/* Title area - also draggable but with padding to avoid icon */}
+      <div 
+        {...attributes} 
+        {...listeners}
+        className="cursor-grab active:cursor-grabbing mb-2 pr-10"
+      >
+        <div className="flex items-center gap-2 flex-wrap">
+          <StatusIcon className={`h-4 w-4 ${statusColors[task.status]?.split(' ')[0]}`} />
+          <h3 className="text-base font-semibold text-gray-900">{task.title}</h3>
+          {isOverdue && (
+            <span className="px-1.5 py-0.5 text-xs font-medium rounded-full bg-red-100 text-red-800 flex items-center gap-1">
+              <AlertCircle className="h-3 w-3" />
+              Overdue
+            </span>
           )}
-          <div className="flex items-center gap-2 mb-2 flex-wrap">
-            <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${priorityColors[task.priority]}`}>
-              {task.priority}
-            </span>
-            {task.due_date && (
-              <span className={`text-xs flex items-center gap-1 ${isOverdue ? 'text-red-600 font-semibold' : 'text-gray-500'}`}>
-                <Calendar className="h-3 w-3" />
-                {new Date(task.due_date).toLocaleDateString()}
-              </span>
-            )}
-            <span className="text-xs text-gray-500">
-              {new Date(task.created_at).toLocaleDateString()}
-            </span>
-          </div>
         </div>
       </div>
-      <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-200">
+      
+      <div className="flex-1">
+        {task.description && (
+          <p className="text-gray-600 text-sm mb-2 line-clamp-2">{task.description}</p>
+        )}
+        <div className="flex items-center gap-2 mb-2 flex-wrap">
+          <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${priorityColors[task.priority]}`}>
+            {task.priority}
+          </span>
+          {task.due_date && (
+            <span className={`text-xs flex items-center gap-1 ${isOverdue ? 'text-red-600 font-semibold' : 'text-gray-500'}`}>
+              <Calendar className="h-3 w-3" />
+              {new Date(task.due_date).toLocaleDateString()}
+            </span>
+          )}
+          <span className="text-xs text-gray-500">
+            {new Date(task.created_at).toLocaleDateString()}
+          </span>
+        </div>
+      </div>
+      <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-200 relative z-10">
         <select
           value={task.status}
           onChange={(e) => handleStatusChange(e.target.value)}
           onClick={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
           className={`text-xs font-medium px-2 py-1 rounded flex-1 ${statusColors[task.status]}`}
         >
           <option value="pending">Pending</option>
@@ -127,12 +146,27 @@ export default function DraggableTaskCard({ task, onEdit }) {
           <option value="cancelled">Cancelled</option>
         </select>
         <button
+          type="button"
           onClick={(e) => {
+            e.preventDefault()
             e.stopPropagation()
-            onEdit(task)
+            console.log('DraggableTaskCard Edit button clicked for task:', task.id)
+            if (onEdit) {
+              onEdit(task)
+            } else {
+              console.error('onEdit is not defined in DraggableTaskCard!')
+            }
           }}
-          onMouseDown={(e) => e.stopPropagation()}
-          className="p-1.5 text-gray-600 hover:text-primary-600 hover:bg-primary-50 rounded"
+          onMouseDown={(e) => {
+            e.preventDefault()
+            e.stopPropagation()
+          }}
+          onPointerDown={(e) => {
+            e.stopPropagation()
+          }}
+          className="p-1.5 text-gray-600 hover:text-primary-600 hover:bg-primary-50 rounded transition-colors"
+          title="Edit task"
+          aria-label="Edit task"
         >
           <Edit className="h-3.5 w-3.5" />
         </button>

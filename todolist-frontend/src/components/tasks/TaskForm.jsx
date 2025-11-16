@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useCreateTaskMutation, useUpdateTaskMutation } from '../../store/api/taskApi'
 import { X } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 export default function TaskForm({ task, onClose }) {
+  console.log('TaskForm rendered with task:', task)
   const [createTask] = useCreateTaskMutation()
   const [updateTask] = useUpdateTaskMutation()
   
@@ -52,11 +54,14 @@ export default function TaskForm({ task, onClose }) {
 
     try {
       const submitData = {
-        ...formData,
+        title: formData.title.trim(),
+        description: formData.description?.trim() || '',
+        priority: formData.priority,
         due_date: formData.due_date ? new Date(formData.due_date).toISOString() : null,
       }
       
       if (task) {
+        submitData.status = formData.status
         await updateTask({ id: task.id, ...submitData }).unwrap()
         toast.success('Task updated successfully')
       } else {
@@ -69,9 +74,9 @@ export default function TaskForm({ task, onClose }) {
     }
   }
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+  const formContent = (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4" onClick={onClose}>
+      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
           <h2 className="text-2xl font-bold text-gray-900">
             {task ? 'Edit Task' : 'Create New Task'}
@@ -135,49 +140,49 @@ export default function TaskForm({ task, onClose }) {
               </select>
             </div>
 
-            {task && (
-              <div>
-                <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
-                  Status
-                </label>
-                <select
-                  id="status"
-                  name="status"
-                  className="input-field"
-                  value={formData.status}
-                  onChange={handleChange}
+            <div>
+              <label htmlFor="due_date" className="block text-sm font-medium text-gray-700 mb-1">
+                Due Date
+              </label>
+              <input
+                id="due_date"
+                name="due_date"
+                type="datetime-local"
+                className="input-field"
+                value={formData.due_date}
+                onChange={handleChange}
+              />
+              {formData.due_date && (
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, due_date: '' })}
+                  className="mt-1 text-xs text-red-600 hover:text-red-800 block"
                 >
-                  <option value="pending">Pending</option>
-                  <option value="in_progress">In Progress</option>
-                  <option value="completed">Completed</option>
-                  <option value="cancelled">Cancelled</option>
-                </select>
-              </div>
-            )}
+                  Clear due date
+                </button>
+              )}
+            </div>
           </div>
 
-          <div>
-            <label htmlFor="due_date" className="block text-sm font-medium text-gray-700 mb-1">
-              Due Date
-            </label>
-            <input
-              id="due_date"
-              name="due_date"
-              type="datetime-local"
-              className="input-field"
-              value={formData.due_date}
-              onChange={handleChange}
-            />
-            {formData.due_date && (
-              <button
-                type="button"
-                onClick={() => setFormData({ ...formData, due_date: '' })}
-                className="mt-1 text-xs text-red-600 hover:text-red-800"
+          {task && (
+            <div>
+              <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
+                Status
+              </label>
+              <select
+                id="status"
+                name="status"
+                className="input-field"
+                value={formData.status}
+                onChange={handleChange}
               >
-                Clear due date
-              </button>
-            )}
-          </div>
+                <option value="pending">Pending</option>
+                <option value="in_progress">In Progress</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+            </div>
+          )}
 
           <div className="flex justify-end gap-3 pt-4">
             <button
@@ -198,5 +203,7 @@ export default function TaskForm({ task, onClose }) {
       </div>
     </div>
   )
+
+  return createPortal(formContent, document.body)
 }
 

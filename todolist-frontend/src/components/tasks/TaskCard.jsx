@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useUpdateTaskStatusMutation, useDeleteTaskMutation } from '../../store/api/taskApi'
-import { CheckCircle2, Circle, Trash2, Edit, Clock, AlertCircle, XCircle, Calendar } from 'lucide-react'
+import { CheckCircle2, Circle, Trash2, Edit, Clock, AlertCircle, XCircle, Calendar, GripVertical } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 const statusIcons = {
@@ -58,8 +58,16 @@ export default function TaskCard({ task, onEdit }) {
   }
 
   return (
-    <div className={`card hover:shadow-lg transition-shadow ${isOverdue ? 'border-l-4 border-red-500' : ''}`}>
-      <div className="flex items-start justify-between">
+    <div className={`card hover:shadow-lg transition-shadow relative ${isOverdue ? 'border-l-4 border-red-500' : ''}`}>
+      {/* Drag indicator icon - top right (visual only, not functional in grid view) */}
+      <div 
+        className="absolute top-2 right-2 p-1.5 text-gray-300 hover:text-gray-400 transition-colors"
+        title="Tasks can be reordered in Kanban view"
+      >
+        <GripVertical className="h-4 w-4" />
+      </div>
+      
+      <div className="flex items-start justify-between pr-10">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-2">
             <StatusIcon className={`h-5 w-5 ${statusColors[task.status]?.split(' ')[0]}`} />
@@ -102,8 +110,28 @@ export default function TaskCard({ task, onEdit }) {
             <option value="cancelled">Cancelled</option>
           </select>
           <button
-            onClick={() => onEdit(task)}
-            className="p-2 text-gray-600 hover:text-primary-600 hover:bg-primary-50 rounded"
+            type="button"
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              console.log('TaskCard Edit button clicked for task:', task.id)
+              console.log('onEdit function exists:', typeof onEdit === 'function')
+              if (onEdit && typeof onEdit === 'function') {
+                console.log('Calling onEdit with task:', task)
+                onEdit(task)
+              } else {
+                console.error('onEdit is not defined or not a function!', onEdit)
+              }
+            }}
+            onMouseDown={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              console.log('Edit button mouseDown')
+            }}
+            className="p-2 text-gray-600 hover:text-primary-600 hover:bg-primary-50 rounded transition-colors cursor-pointer"
+            title="Edit task"
+            aria-label="Edit task"
+            style={{ pointerEvents: 'auto', zIndex: 10 }}
           >
             <Edit className="h-4 w-4" />
           </button>
