@@ -10,6 +10,8 @@ import Signup from './components/auth/Signup'
 import Dashboard from './pages/Dashboard'
 import Profile from './pages/Profile'
 import Admin from './pages/Admin'
+import MindMaps from './pages/MindMaps'
+import MindMapEditor from './pages/MindMapEditor'
 
 function App() {
   const dispatch = useDispatch()
@@ -71,6 +73,22 @@ function App() {
             element={
               <ProtectedRoute adminOnly>
                 <Admin />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/mindmaps"
+            element={
+              <ProtectedRoute>
+                <MindMaps />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/mindmaps/:id"
+            element={
+              <ProtectedRoute>
+                <MindMapEditor />
               </ProtectedRoute>
             }
           />

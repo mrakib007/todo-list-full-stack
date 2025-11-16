@@ -10,9 +10,11 @@ const authRoutes = require('./routes/authRoutes');
 const taskRoutes = require('./routes/taskRoutes');
 const userRoutes = require('./routes/userRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const mindMapRoutes = require('./routes/mindMapRoutes');
 const { authenticateToken } = require('./middleware/auth');
 const { notFoundHandler, errorHandler } = require('./middleware/errorHandler');
 const { createUsersTable, updateExistingUsersType, createAdminUser } = require('./models/userModel');
+const mindMapModel = require('./models/mindMapModel');
 
 const app = express();
 
@@ -34,6 +36,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/tasks', authenticateToken, taskRoutes);
 app.use('/api/users', authenticateToken, userRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/mindmaps', authenticateToken, mindMapRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
@@ -50,6 +53,7 @@ const initializeDatabase = async () => {
   try {
     await createUsersTable();
     await createTasksTable();
+    await mindMapModel.createTable();
     await updateExistingUsersType();
     await createAdminUser();
     console.log('Database tables initialized');
