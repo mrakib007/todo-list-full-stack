@@ -1,7 +1,7 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { logout } from '../../store/slices/authSlice'
-import { LogOut, User, LayoutDashboard, Shield, Menu, X, Brain } from 'lucide-react'
+import { LogOut, User, LayoutDashboard, Shield, Menu, X, Brain, Calendar } from 'lucide-react'
 import { useState, useMemo } from 'react'
 import toast from 'react-hot-toast'
 
@@ -29,6 +29,11 @@ export default function Sidebar() {
         to: '/dashboard',
         label: 'Dashboard',
         icon: LayoutDashboard,
+      },
+      {
+        to: '/calendar',
+        label: 'Calendar',
+        icon: Calendar,
       },
       {
         to: '/mindmaps',

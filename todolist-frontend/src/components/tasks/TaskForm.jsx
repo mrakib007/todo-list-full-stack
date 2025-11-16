@@ -19,6 +19,8 @@ export default function TaskForm({ task, onClose }) {
 
   useEffect(() => {
     if (task) {
+      // Check if task has an id - if not, it's a new task with pre-filled data
+      const isNewTask = !task.id
       setFormData({
         title: task.title || '',
         description: task.description || '',
@@ -60,11 +62,13 @@ export default function TaskForm({ task, onClose }) {
         due_date: formData.due_date ? new Date(formData.due_date).toISOString() : null,
       }
       
-      if (task) {
+      if (task && task.id) {
+        // Existing task - update it
         submitData.status = formData.status
         await updateTask({ id: task.id, ...submitData }).unwrap()
         toast.success('Task updated successfully')
       } else {
+        // New task - create it
         await createTask(submitData).unwrap()
         toast.success('Task created successfully')
       }
@@ -79,7 +83,7 @@ export default function TaskForm({ task, onClose }) {
       <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
           <h2 className="text-2xl font-bold text-gray-900">
-            {task ? 'Edit Task' : 'Create New Task'}
+            {task && task.id ? 'Edit Task' : 'Create New Task'}
           </h2>
           <button
             onClick={onClose}

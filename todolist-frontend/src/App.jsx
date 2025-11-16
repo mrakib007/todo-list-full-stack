@@ -12,6 +12,7 @@ import Profile from './pages/Profile'
 import Admin from './pages/Admin'
 import MindMaps from './pages/MindMaps'
 import MindMapEditor from './pages/MindMapEditor'
+import CalendarView from './pages/CalendarView'
 
 function App() {
   const dispatch = useDispatch()
@@ -73,6 +74,14 @@ function App() {
             element={
               <ProtectedRoute adminOnly>
                 <Admin />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/calendar"
+            element={
+              <ProtectedRoute>
+                <CalendarView />
               </ProtectedRoute>
             }
           />
