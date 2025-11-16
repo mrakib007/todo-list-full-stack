@@ -26,7 +26,11 @@ const createTaskValidation = [
     body('priority')
         .optional()
         .isIn(['low', 'medium', 'high', 'urgent'])
-        .withMessage('Priority must be: low, medium, high, or urgent')
+        .withMessage('Priority must be: low, medium, high, or urgent'),
+    body('due_date')
+        .optional()
+        .isISO8601()
+        .withMessage('Due date must be a valid ISO 8601 date format')
 ];
 
 const updateTaskValidation = [
@@ -45,7 +49,16 @@ const updateTaskValidation = [
     body('status')
         .optional()
         .isIn(['pending', 'in_progress', 'completed', 'cancelled'])
-        .withMessage('Status must be: pending, in_progress, completed, or cancelled')
+        .withMessage('Status must be: pending, in_progress, completed, or cancelled'),
+    body('due_date')
+        .optional()
+        .custom((value) => {
+            if (value === null || value === '') {
+                return true; // Allow clearing due date
+            }
+            return new Date(value).toString() !== 'Invalid Date';
+        })
+        .withMessage('Due date must be a valid date format or null to clear')
 ];
 
 const updateStatusValidation = [
@@ -110,18 +123,29 @@ router.post('/', createTaskValidation, taskController.createTask);
  *           type: string
  *           enum: [pending, in_progress, completed, cancelled]
  *         description: Filter tasks by status
- *       - in: query
- *         name: priority
- *         schema:
- *           type: string
- *           enum: [low, medium, high, urgent]
- *         description: Filter tasks by priority
- *       - in: query
- *         name: sortBy
- *         schema:
- *           type: string
- *           enum: [created_at, updated_at, title, priority, status]
- *         description: Field to sort by
+     *       - in: query
+     *         name: priority
+     *         schema:
+     *           type: string
+     *           enum: [low, medium, high, urgent]
+     *         description: Filter tasks by priority
+     *       - in: query
+     *         name: dueDate
+     *         schema:
+     *           type: string
+     *           format: date
+     *         description: Filter tasks by due date (YYYY-MM-DD format)
+     *       - in: query
+     *         name: overdue
+     *         schema:
+     *           type: boolean
+     *         description: Filter for overdue tasks only
+     *       - in: query
+     *         name: sortBy
+     *         schema:
+     *           type: string
+     *           enum: [created_at, updated_at, title, priority, status, due_date]
+     *         description: Field to sort by
  *       - in: query
  *         name: sortOrder
  *         schema:
@@ -189,11 +213,14 @@ router.get('/', taskController.getTasks);
  *                       type: integer
  *                     high_priority:
  *                       type: integer
- *                     urgent_priority:
- *                       type: integer
- *       401:
- *         description: Unauthorized
- */
+     *                     urgent_priority:
+     *                       type: integer
+     *                     overdue:
+     *                       type: integer
+     *                       description: Number of overdue tasks
+     *       401:
+     *         description: Unauthorized
+     */
 router.get('/stats', taskController.getTaskStatistics);
 
 /**
@@ -510,5 +537,35 @@ router.delete('/bulk', taskController.bulkDeleteTasks);
  *         description: Unauthorized
  */
 router.patch('/bulk/status', updateStatusValidation, taskController.bulkUpdateTaskStatus);
+
+/**
+ * @swagger
+ * /tasks/overdue:
+ *   get:
+ *     summary: Get all overdue tasks for the authenticated user
+ *     tags: [Tasks]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of overdue tasks
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 count:
+ *                   type: integer
+ *                   description: Number of overdue tasks
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Task'
+ *       401:
+ *         description: Unauthorized
+ */
+router.get('/overdue', taskController.getOverdueTasks);
 
 module.exports = router;

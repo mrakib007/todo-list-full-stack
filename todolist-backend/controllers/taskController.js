@@ -14,9 +14,9 @@ const taskController = {
       }
 
       const userId = req.user.id; // Assuming user is attached to req by auth middleware
-      const { title, description, priority } = req.body;
+      const { title, description, priority, due_date } = req.body;
 
-      const newTask = await taskService.createTask(userId, title, description, priority);
+      const newTask = await taskService.createTask(userId, title, description, priority, due_date);
       
       res.status(201).json({
         success: true,
@@ -35,10 +35,10 @@ const taskController = {
   getTasks: async (req, res) => {
     try {
       const userId = req.user.id;
-      const { status, priority, sortBy, sortOrder } = req.query;
+      const { status, priority, dueDate, overdue, sortBy, sortOrder } = req.query;
 
-      if (priority || sortBy) {
-        const tasks = await taskService.getTasksWithFilters(userId, { status, priority, sortBy, sortOrder });
+      if (priority || sortBy || dueDate || overdue) {
+        const tasks = await taskService.getTasksWithFilters(userId, { status, priority, dueDate, overdue, sortBy, sortOrder });
         return res.json({
           success: true,
           count: tasks.length,
@@ -268,6 +268,24 @@ const taskController = {
         message: `${updatedTasks.length} task(s) status updated successfully`,
         count: updatedTasks.length,
         data: updatedTasks
+      });
+    } catch (error) {
+      res.status(400).json({ 
+        success: false,
+        error: error.message 
+      });
+    }
+  },
+
+  getOverdueTasks: async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const tasks = await taskService.getOverdueTasks(userId);
+      
+      res.json({
+        success: true,
+        count: tasks.length,
+        data: tasks
       });
     } catch (error) {
       res.status(400).json({ 

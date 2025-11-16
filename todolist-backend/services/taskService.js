@@ -2,7 +2,7 @@ const taskModel = require('../models/taskModel');
 
 const taskService = {
   // Create new task
-  createTask: async (userId, title, description, priority) => {
+  createTask: async (userId, title, description, priority, dueDate = null) => {
     if (!title || title.trim() === '') {
       throw new Error('Task title is required');
     }
@@ -12,7 +12,15 @@ const taskService = {
       throw new Error('Invalid priority. Must be: low, medium, high, or urgent');
     }
 
-    return await taskModel.create(userId, title.trim(), description?.trim(), priority);
+    // Validate due date if provided
+    if (dueDate) {
+      const dueDateObj = new Date(dueDate);
+      if (isNaN(dueDateObj.getTime())) {
+        throw new Error('Invalid due date format');
+      }
+    }
+
+    return await taskModel.create(userId, title.trim(), description?.trim(), priority, dueDate);
   },
 
   // Get all tasks for user
@@ -36,7 +44,7 @@ const taskService = {
 
   // Update task
   updateTask: async (taskId, userId, updates) => {
-    const { title, description, priority, status } = updates;
+    const { title, description, priority, status, due_date } = updates;
     
     if (title !== undefined && title.trim() === '') {
       throw new Error('Task title cannot be empty');
@@ -52,11 +60,26 @@ const taskService = {
       throw new Error('Invalid status. Must be: pending, in_progress, completed, or cancelled');
     }
 
+    // Validate due date if provided
+    let dueDate = due_date;
+    if (dueDate !== undefined && dueDate !== null) {
+      if (dueDate === '' || dueDate === null) {
+        dueDate = null; // Allow clearing due date
+      } else {
+        const dueDateObj = new Date(dueDate);
+        if (isNaN(dueDateObj.getTime())) {
+          throw new Error('Invalid due date format');
+        }
+        dueDate = dueDateObj.toISOString();
+      }
+    }
+
     const cleanUpdates = {
       title: title?.trim(),
       description: description?.trim(),
       priority,
-      status
+      status,
+      due_date: dueDate
     };
 
     const updatedTask = await taskModel.update(taskId, userId, cleanUpdates);
@@ -104,7 +127,7 @@ const taskService = {
 
   // Get tasks with filters and sorting
   getTasksWithFilters: async (userId, filters) => {
-    const { status, priority, sortBy, sortOrder } = filters;
+    const { status, priority, dueDate, overdue, sortBy, sortOrder } = filters;
 
     if (status) {
       const validStatuses = ['pending', 'in_progress', 'completed', 'cancelled'];
@@ -120,7 +143,14 @@ const taskService = {
       }
     }
 
-    return await taskModel.findWithFilters(userId, { status, priority, sortBy, sortOrder });
+    if (dueDate) {
+      const dueDateObj = new Date(dueDate);
+      if (isNaN(dueDateObj.getTime())) {
+        throw new Error('Invalid due date format');
+      }
+    }
+
+    return await taskModel.findWithFilters(userId, { status, priority, dueDate, overdue, sortBy, sortOrder });
   },
 
   // Bulk delete tasks
@@ -156,6 +186,11 @@ const taskService = {
     }
 
     return await taskModel.bulkUpdateStatus(userId, validIds, status);
+  },
+
+  // Get overdue tasks
+  getOverdueTasks: async (userId) => {
+    return await taskModel.getOverdueTasks(userId);
   }
 };
 

@@ -14,7 +14,13 @@ export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState('')
   const [viewMode, setViewMode] = useState('kanban') // 'grid' or 'kanban'
   
-  const { data: tasksData, isLoading: tasksLoading } = useGetTasksQuery(filters, {
+  const queryParams = {
+    ...filters,
+    dueDate: filters.dueDate || undefined,
+    overdue: filters.overdue ? 'true' : undefined,
+  }
+  
+  const { data: tasksData, isLoading: tasksLoading } = useGetTasksQuery(queryParams, {
     skip: !!searchQuery,
   })
   const { data: searchData, isLoading: searchLoading } = useSearchTasksQuery(searchQuery, {

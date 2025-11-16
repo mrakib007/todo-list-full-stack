@@ -5,6 +5,8 @@ export default function TaskFilters({ onFilterChange, onSearch }) {
   const [filters, setFilters] = useState({
     status: '',
     priority: '',
+    dueDate: '',
+    overdue: false,
     sortBy: 'created_at',
     sortOrder: 'DESC',
   })
@@ -27,6 +29,8 @@ export default function TaskFilters({ onFilterChange, onSearch }) {
     const cleared = {
       status: '',
       priority: '',
+      dueDate: '',
+      overdue: false,
       sortBy: 'created_at',
       sortOrder: 'DESC',
     }
@@ -56,7 +60,7 @@ export default function TaskFilters({ onFilterChange, onSearch }) {
           <Filter className="h-4 w-4" />
           Filters
         </button>
-        {(filters.status || filters.priority || searchQuery) && (
+        {(filters.status || filters.priority || filters.dueDate || filters.overdue || searchQuery) && (
           <button
             onClick={clearFilters}
             className="btn-secondary flex items-center gap-2"
@@ -68,7 +72,7 @@ export default function TaskFilters({ onFilterChange, onSearch }) {
       </div>
 
       {showFilters && (
-        <div className="card grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="card grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Status
@@ -105,6 +109,33 @@ export default function TaskFilters({ onFilterChange, onSearch }) {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
+              Due Date
+            </label>
+            <input
+              type="date"
+              className="input-field"
+              value={filters.dueDate}
+              onChange={(e) => handleFilterChange('dueDate', e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Overdue Only
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                className="h-4 w-4 text-primary-600 rounded"
+                checked={filters.overdue}
+                onChange={(e) => handleFilterChange('overdue', e.target.checked)}
+              />
+              <span className="text-sm text-gray-700">Show overdue</span>
+            </label>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Sort By
             </label>
             <select
@@ -117,6 +148,7 @@ export default function TaskFilters({ onFilterChange, onSearch }) {
               <option value="title">Title</option>
               <option value="priority">Priority</option>
               <option value="status">Status</option>
+              <option value="due_date">Due Date</option>
             </select>
           </div>
 

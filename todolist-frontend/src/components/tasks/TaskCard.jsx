@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useUpdateTaskStatusMutation, useDeleteTaskMutation } from '../../store/api/taskApi'
-import { CheckCircle2, Circle, Trash2, Edit, Clock, AlertCircle, XCircle } from 'lucide-react'
+import { CheckCircle2, Circle, Trash2, Edit, Clock, AlertCircle, XCircle, Calendar } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 const statusIcons = {
@@ -31,6 +31,10 @@ export default function TaskCard({ task, onEdit }) {
 
   const StatusIcon = statusIcons[task.status] || Circle
 
+  const isOverdue = task.due_date && 
+    new Date(task.due_date) < new Date() && 
+    !['completed', 'cancelled'].includes(task.status)
+
   const handleStatusChange = async (newStatus) => {
     try {
       await updateStatus({ id: task.id, status: newStatus }).unwrap()
@@ -54,7 +58,7 @@ export default function TaskCard({ task, onEdit }) {
   }
 
   return (
-    <div className="card hover:shadow-lg transition-shadow">
+    <div className={`card hover:shadow-lg transition-shadow ${isOverdue ? 'border-l-4 border-red-500' : ''}`}>
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-2">
@@ -63,11 +67,23 @@ export default function TaskCard({ task, onEdit }) {
             <span className={`px-2 py-1 text-xs font-medium rounded-full ${priorityColors[task.priority]}`}>
               {task.priority}
             </span>
+            {isOverdue && (
+              <span className="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800 flex items-center gap-1">
+                <AlertCircle className="h-3 w-3" />
+                Overdue
+              </span>
+            )}
           </div>
           {task.description && (
             <p className="text-gray-600 text-sm mb-3">{task.description}</p>
           )}
-          <div className="flex items-center gap-4 text-xs text-gray-500">
+          <div className="flex items-center gap-4 text-xs text-gray-500 flex-wrap">
+            {task.due_date && (
+              <span className={`flex items-center gap-1 ${isOverdue ? 'text-red-600 font-semibold' : 'text-gray-500'}`}>
+                <Calendar className="h-3 w-3" />
+                Due: {new Date(task.due_date).toLocaleDateString()} {new Date(task.due_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            )}
             <span>Created: {new Date(task.created_at).toLocaleDateString()}</span>
             {task.updated_at !== task.created_at && (
               <span>Updated: {new Date(task.updated_at).toLocaleDateString()}</span>

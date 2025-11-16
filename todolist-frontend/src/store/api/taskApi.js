@@ -3,10 +3,12 @@ import { apiSlice } from './apiSlice'
 export const taskApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getTasks: builder.query({
-      query: ({ status, priority, sortBy, sortOrder } = {}) => {
+      query: ({ status, priority, dueDate, overdue, sortBy, sortOrder } = {}) => {
         const params = new URLSearchParams()
         if (status) params.append('status', status)
         if (priority) params.append('priority', priority)
+        if (dueDate) params.append('dueDate', dueDate)
+        if (overdue) params.append('overdue', overdue)
         if (sortBy) params.append('sortBy', sortBy)
         if (sortOrder) params.append('sortOrder', sortOrder)
         return `/tasks?${params.toString()}`
@@ -72,6 +74,10 @@ export const taskApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['Task', 'Stats'],
     }),
+    getOverdueTasks: builder.query({
+      query: () => '/tasks/overdue',
+      providesTags: ['Task'],
+    }),
   }),
 })
 
@@ -86,5 +92,6 @@ export const {
   useGetTaskStatsQuery,
   useBulkDeleteTasksMutation,
   useBulkUpdateTaskStatusMutation,
+  useGetOverdueTasksQuery,
 } = taskApi
 

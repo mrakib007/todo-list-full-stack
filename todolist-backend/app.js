@@ -68,11 +68,20 @@ const createTasksTable = async () => {
       description TEXT,
       priority VARCHAR(50) DEFAULT 'medium',
       status VARCHAR(50) DEFAULT 'pending',
+      due_date TIMESTAMP,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `;
   await pool.query(query);
+  
+  try {
+    await pool.query(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS due_date TIMESTAMP`);
+  } catch (error) {
+    if (!error.message.includes('already exists')) {
+      console.error('Alter table error:', error.message);
+    }
+  }
 };
 
 // Start server

@@ -12,6 +12,7 @@ export default function TaskForm({ task, onClose }) {
     description: '',
     priority: 'medium',
     status: 'pending',
+    due_date: '',
   })
 
   useEffect(() => {
@@ -21,6 +22,15 @@ export default function TaskForm({ task, onClose }) {
         description: task.description || '',
         priority: task.priority || 'medium',
         status: task.status || 'pending',
+        due_date: task.due_date ? new Date(task.due_date).toISOString().slice(0, 16) : '',
+      })
+    } else {
+      setFormData({
+        title: '',
+        description: '',
+        priority: 'medium',
+        status: 'pending',
+        due_date: '',
       })
     }
   }, [task])
@@ -41,11 +51,16 @@ export default function TaskForm({ task, onClose }) {
     }
 
     try {
+      const submitData = {
+        ...formData,
+        due_date: formData.due_date ? new Date(formData.due_date).toISOString() : null,
+      }
+      
       if (task) {
-        await updateTask({ id: task.id, ...formData }).unwrap()
+        await updateTask({ id: task.id, ...submitData }).unwrap()
         toast.success('Task updated successfully')
       } else {
-        await createTask(formData).unwrap()
+        await createTask(submitData).unwrap()
         toast.success('Task created successfully')
       }
       onClose()
@@ -138,6 +153,29 @@ export default function TaskForm({ task, onClose }) {
                   <option value="cancelled">Cancelled</option>
                 </select>
               </div>
+            )}
+          </div>
+
+          <div>
+            <label htmlFor="due_date" className="block text-sm font-medium text-gray-700 mb-1">
+              Due Date
+            </label>
+            <input
+              id="due_date"
+              name="due_date"
+              type="datetime-local"
+              className="input-field"
+              value={formData.due_date}
+              onChange={handleChange}
+            />
+            {formData.due_date && (
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, due_date: '' })}
+                className="mt-1 text-xs text-red-600 hover:text-red-800"
+              >
+                Clear due date
+              </button>
             )}
           </div>
 

@@ -1,13 +1,13 @@
 import { useGetTaskStatsQuery } from '../../store/api/taskApi'
-import { CheckCircle2, Clock, Circle, XCircle, AlertCircle } from 'lucide-react'
+import { CheckCircle2, Clock, Circle, XCircle, AlertCircle, Calendar } from 'lucide-react'
 
 export default function TaskStats() {
   const { data: stats, isLoading } = useGetTaskStatsQuery()
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-        {[...Array(5)].map((_, i) => (
+      <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-6">
+        {[...Array(6)].map((_, i) => (
           <div key={i} className="card animate-pulse">
             <div className="h-20 bg-gray-200 rounded"></div>
           </div>
@@ -24,10 +24,11 @@ export default function TaskStats() {
     { label: 'In Progress', value: stats.data.in_progress, icon: Clock, color: 'text-blue-600 bg-blue-100' },
     { label: 'Completed', value: stats.data.completed, icon: CheckCircle2, color: 'text-green-600 bg-green-100' },
     { label: 'Cancelled', value: stats.data.cancelled, icon: XCircle, color: 'text-red-600 bg-red-100' },
+    { label: 'Overdue', value: stats.data.overdue || 0, icon: Calendar, color: 'text-red-600 bg-red-100' },
   ]
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
       {statItems.map((item) => {
         const Icon = item.icon
         return (

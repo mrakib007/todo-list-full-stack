@@ -2,13 +2,13 @@ const pool = require('../config/database');
 
 const taskModel = {
   // Create new task
-  create: async (userId, title, description, priority = 'medium') => {
+  create: async (userId, title, description, priority = 'medium', dueDate = null) => {
     const query = `
-      INSERT INTO tasks (user_id, title, description, priority, status, created_at, updated_at)
-      VALUES ($1, $2, $3, $4, 'pending', NOW(), NOW())
+      INSERT INTO tasks (user_id, title, description, priority, status, due_date, created_at, updated_at)
+      VALUES ($1, $2, $3, $4, 'pending', $5, NOW(), NOW())
       RETURNING *
     `;
-    const result = await pool.query(query, [userId, title, description, priority]);
+    const result = await pool.query(query, [userId, title, description, priority, dueDate]);
     return result.rows[0];
   },
 
@@ -37,18 +37,19 @@ const taskModel = {
 
   // Update task
   update: async (taskId, userId, updates) => {
-    const { title, description, priority, status } = updates;
+    const { title, description, priority, status, due_date } = updates;
     const query = `
       UPDATE tasks 
       SET title = COALESCE($3, title),
           description = COALESCE($4, description),
           priority = COALESCE($5, priority),
           status = COALESCE($6, status),
+          due_date = COALESCE($7, due_date),
           updated_at = NOW()
       WHERE id = $1 AND user_id = $2
       RETURNING *
     `;
-    const result = await pool.query(query, [taskId, userId, title, description, priority, status]);
+    const result = await pool.query(query, [taskId, userId, title, description, priority, status, due_date]);
     return result.rows[0];
   },
 
@@ -83,7 +84,8 @@ const taskModel = {
         COUNT(*) FILTER (WHERE priority = 'low') as low_priority,
         COUNT(*) FILTER (WHERE priority = 'medium') as medium_priority,
         COUNT(*) FILTER (WHERE priority = 'high') as high_priority,
-        COUNT(*) FILTER (WHERE priority = 'urgent') as urgent_priority
+        COUNT(*) FILTER (WHERE priority = 'urgent') as urgent_priority,
+        COUNT(*) FILTER (WHERE due_date IS NOT NULL AND due_date < NOW() AND status NOT IN ('completed', 'cancelled')) as overdue
       FROM tasks
       WHERE user_id = $1
     `;
@@ -106,7 +108,7 @@ const taskModel = {
 
   // Get tasks with filters and sorting
   findWithFilters: async (userId, filters) => {
-    const { status, priority, sortBy = 'created_at', sortOrder = 'DESC' } = filters;
+    const { status, priority, dueDate, overdue, sortBy = 'created_at', sortOrder = 'DESC' } = filters;
     let query = 'SELECT * FROM tasks WHERE user_id = $1';
     const params = [userId];
     let paramIndex = 2;
@@ -123,8 +125,18 @@ const taskModel = {
       paramIndex++;
     }
 
+    if (dueDate) {
+      query += ` AND due_date::date = $${paramIndex}::date`;
+      params.push(dueDate);
+      paramIndex++;
+    }
+
+    if (overdue === 'true' || overdue === true) {
+      query += ` AND due_date IS NOT NULL AND due_date < NOW() AND status NOT IN ('completed', 'cancelled')`;
+    }
+
     // Validate sortBy and sortOrder
-    const validSortFields = ['created_at', 'updated_at', 'title', 'priority', 'status'];
+    const validSortFields = ['created_at', 'updated_at', 'title', 'priority', 'status', 'due_date'];
     const validSortOrders = ['ASC', 'DESC'];
     const safeSortBy = validSortFields.includes(sortBy) ? sortBy : 'created_at';
     const safeSortOrder = validSortOrders.includes(sortOrder.toUpperCase()) ? sortOrder.toUpperCase() : 'DESC';
@@ -155,6 +167,20 @@ const taskModel = {
       RETURNING *
     `;
     const result = await pool.query(query, [userId, taskIds, status]);
+    return result.rows;
+  },
+
+  // Get overdue tasks
+  getOverdueTasks: async (userId) => {
+    const query = `
+      SELECT * FROM tasks 
+      WHERE user_id = $1 
+      AND due_date IS NOT NULL 
+      AND due_date < NOW() 
+      AND status NOT IN ('completed', 'cancelled')
+      ORDER BY due_date ASC, created_at DESC
+    `;
+    const result = await pool.query(query, [userId]);
     return result.rows;
   }
 };
