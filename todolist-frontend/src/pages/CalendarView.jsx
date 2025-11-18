@@ -80,11 +80,31 @@ export default function CalendarView() {
       })
   }, [tasks])
 
+  const formatDateForInput = (date, setTimeToStartOfDay = false) => {
+    const dateToFormat = setTimeToStartOfDay 
+      ? new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0)
+      : date
+    const year = dateToFormat.getFullYear()
+    const month = String(dateToFormat.getMonth() + 1).padStart(2, '0')
+    const day = String(dateToFormat.getDate()).padStart(2, '0')
+    const hours = String(dateToFormat.getHours()).padStart(2, '0')
+    const minutes = String(dateToFormat.getMinutes()).padStart(2, '0')
+    return `${year}-${month}-${day}T${hours}:${minutes}`
+  }
+
   // Handle date click
   const handleDateClick = (arg) => {
     setSelectedDate(arg.date)
-    // Optionally open task form for this date
-    const dateStr = arg.date.toISOString().slice(0, 16)
+    // FullCalendar provides the date, ensure we use local time
+    // Create a new date object using local time components to avoid timezone issues
+    const localDate = new Date(
+      arg.date.getFullYear(),
+      arg.date.getMonth(),
+      arg.date.getDate(),
+      0, // hours - set to start of day
+      0  // minutes
+    )
+    const dateStr = formatDateForInput(localDate, false)
     setEditingTask({ due_date: dateStr })
     setShowTaskForm(true)
   }
@@ -129,7 +149,7 @@ export default function CalendarView() {
 
   // Handle create new task
   const handleCreateTask = () => {
-    const dateStr = selectedDate.toISOString().slice(0, 16)
+    const dateStr = formatDateForInput(selectedDate)
     setEditingTask({ due_date: dateStr })
     setShowTaskForm(true)
   }
