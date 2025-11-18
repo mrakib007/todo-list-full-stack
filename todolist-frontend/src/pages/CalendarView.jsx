@@ -1,58 +1,135 @@
-import { useState, useMemo } from 'react'
-import Calendar from 'react-calendar'
-import 'react-calendar/dist/Calendar.css'
+import { useState, useMemo, useRef } from 'react'
+import FullCalendar from '@fullcalendar/react'
+import dayGridPlugin from '@fullcalendar/daygrid'
+import timeGridPlugin from '@fullcalendar/timegrid'
+import listPlugin from '@fullcalendar/list'
+import interactionPlugin from '@fullcalendar/interaction'
 import { useGetTasksQuery } from '../store/api/taskApi'
 import TaskForm from '../components/tasks/TaskForm'
-import TaskCard from '../components/tasks/TaskCard'
 import { Calendar as CalendarIcon, Plus, ChevronLeft, ChevronRight } from 'lucide-react'
 import './CalendarView.css'
 
 export default function CalendarView() {
-  const [selectedDate, setSelectedDate] = useState(new Date())
-  const [viewMode, setViewMode] = useState('month') // 'month' or 'week'
+  const calendarRef = useRef(null)
+  const [currentView, setCurrentView] = useState('dayGridMonth')
   const [showTaskForm, setShowTaskForm] = useState(false)
   const [editingTask, setEditingTask] = useState(null)
+  const [selectedDate, setSelectedDate] = useState(new Date())
+  const [dateTitle, setDateTitle] = useState('')
 
   // Fetch all tasks
   const { data: tasksData, isLoading } = useGetTasksQuery({})
   const tasks = tasksData?.data || []
 
-  // Group tasks by due date
-  const tasksByDate = useMemo(() => {
-    const grouped = {}
-    tasks.forEach((task) => {
-      if (task.due_date) {
-        const dateKey = new Date(task.due_date).toDateString()
-        if (!grouped[dateKey]) {
-          grouped[dateKey] = []
+  // Convert tasks to FullCalendar events
+  const events = useMemo(() => {
+    return tasks
+      .filter((task) => task.due_date)
+      .map((task) => {
+        const dueDate = new Date(task.due_date)
+        const isAllDay = dueDate.getHours() === 0 && dueDate.getMinutes() === 0
+        
+        // Determine event color based on priority and status
+        let backgroundColor = '#3b82f6' // default blue
+        let borderColor = '#2563eb'
+        let textColor = '#ffffff'
+        
+        if (task.status === 'completed') {
+          backgroundColor = '#10b981' // green
+          borderColor = '#059669'
+        } else if (task.status === 'cancelled') {
+          backgroundColor = '#9ca3af' // gray
+          borderColor = '#6b7280'
+        } else {
+          switch (task.priority) {
+            case 'urgent':
+              backgroundColor = '#ef4444' // red
+              borderColor = '#dc2626'
+              break
+            case 'high':
+              backgroundColor = '#f97316' // orange
+              borderColor = '#ea580c'
+              break
+            case 'medium':
+              backgroundColor = '#eab308' // yellow
+              borderColor = '#ca8a04'
+              textColor = '#000000'
+              break
+            case 'low':
+              backgroundColor = '#3b82f6' // blue
+              borderColor = '#2563eb'
+              break
+            default:
+              backgroundColor = '#3b82f6'
+              borderColor = '#2563eb'
+          }
         }
-        grouped[dateKey].push(task)
-      }
-    })
-    return grouped
+
+        return {
+          id: task.id.toString(),
+          title: task.title,
+          start: dueDate,
+          allDay: isAllDay,
+          backgroundColor,
+          borderColor,
+          textColor,
+          extendedProps: {
+            task,
+          },
+        }
+      })
   }, [tasks])
 
-  // Get tasks for selected date
-  const getTasksForDate = (date) => {
-    const dateKey = date.toDateString()
-    return tasksByDate[dateKey] || []
-  }
-
   // Handle date click
-  const handleDateClick = (date) => {
-    setSelectedDate(date)
-  }
-
-  // Handle task edit
-  const handleEdit = (task) => {
-    setEditingTask(task)
+  const handleDateClick = (arg) => {
+    setSelectedDate(arg.date)
+    // Optionally open task form for this date
+    const dateStr = arg.date.toISOString().slice(0, 16)
+    setEditingTask({ due_date: dateStr })
     setShowTaskForm(true)
   }
 
+  // Handle event click
+  const handleEventClick = (clickInfo) => {
+    setEditingTask(clickInfo.event.extendedProps.task)
+    setShowTaskForm(true)
+  }
+
+  // Handle view change
+  const handleViewChange = (viewType) => {
+    setCurrentView(viewType)
+    if (calendarRef.current) {
+      const calendarApi = calendarRef.current.getApi()
+      calendarApi.changeView(viewType)
+      setTimeout(updateDateTitle, 100)
+    }
+  }
+
+  // Navigate calendar
+  const handlePrev = () => {
+    if (calendarRef.current) {
+      calendarRef.current.getApi().prev()
+      setTimeout(updateDateTitle, 100)
+    }
+  }
+
+  const handleNext = () => {
+    if (calendarRef.current) {
+      calendarRef.current.getApi().next()
+      setTimeout(updateDateTitle, 100)
+    }
+  }
+
+  const handleToday = () => {
+    if (calendarRef.current) {
+      calendarRef.current.getApi().today()
+      setTimeout(updateDateTitle, 100)
+    }
+  }
+
   // Handle create new task
-  const handleCreateTask = (date) => {
-    // Create a task object with the due date pre-filled
-    const dateStr = date.toISOString().slice(0, 16)
+  const handleCreateTask = () => {
+    const dateStr = selectedDate.toISOString().slice(0, 16)
     setEditingTask({ due_date: dateStr })
     setShowTaskForm(true)
   }
@@ -63,76 +140,43 @@ export default function CalendarView() {
     setEditingTask(null)
   }
 
-  // Custom tile content to show task count
-  const tileContent = ({ date, view }) => {
-    if (view === 'month') {
-      const dateKey = date.toDateString()
-      const dayTasks = tasksByDate[dateKey] || []
-      if (dayTasks.length > 0) {
-        return (
-          <div className="flex flex-wrap gap-0.5 justify-center mt-1">
-            {dayTasks.slice(0, 3).map((task, idx) => (
-              <div
-                key={task.id}
-                className={`w-1.5 h-1.5 rounded-full ${
-                  task.status === 'completed'
-                    ? 'bg-green-500'
-                    : task.status === 'cancelled'
-                    ? 'bg-gray-400'
-                    : task.priority === 'urgent'
-                    ? 'bg-red-500'
-                    : task.priority === 'high'
-                    ? 'bg-orange-500'
-                    : task.priority === 'medium'
-                    ? 'bg-yellow-500'
-                    : 'bg-blue-500'
-                }`}
-                title={task.title}
-              />
-            ))}
-            {dayTasks.length > 3 && (
-              <div className="text-xs text-gray-500 font-semibold">+{dayTasks.length - 3}</div>
-            )}
-          </div>
-        )
+  // Update date title when view changes
+  const updateDateTitle = () => {
+    if (calendarRef.current) {
+      try {
+        const calendarApi = calendarRef.current.getApi()
+        const view = calendarApi.view
+        const start = view.activeStart
+        const end = view.activeEnd
+        
+        if (currentView === 'dayGridMonth') {
+          setDateTitle(start.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }))
+        } else if (currentView === 'timeGridWeek' || currentView === 'dayGridWeek') {
+          const startMonth = start.toLocaleDateString('en-US', { month: 'short' })
+          const endMonth = end.toLocaleDateString('en-US', { month: 'short' })
+          if (startMonth === endMonth) {
+            setDateTitle(`${startMonth} ${start.getDate()} - ${end.getDate()}, ${start.getFullYear()}`)
+          } else {
+            setDateTitle(`${startMonth} ${start.getDate()} - ${endMonth} ${end.getDate()}, ${start.getFullYear()}`)
+          }
+        } else if (currentView === 'timeGridDay') {
+          setDateTitle(start.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }))
+        } else if (currentView === 'listWeek' || currentView === 'listMonth') {
+          setDateTitle(start.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }))
+        } else {
+          setDateTitle(start.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }))
+        }
+      } catch (error) {
+        setDateTitle(new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }))
       }
     }
-    return null
   }
-
-  // Custom tile className for styling
-  const tileClassName = ({ date, view }) => {
-    if (view === 'month') {
-      const dateKey = date.toDateString()
-      const today = new Date().toDateString()
-      const selected = selectedDate.toDateString()
-      const hasTasks = tasksByDate[dateKey]?.length > 0
-      const isOverdue = tasksByDate[dateKey]?.some(
-        (task) =>
-          task.due_date &&
-          new Date(task.due_date) < new Date() &&
-          task.status !== 'completed' &&
-          task.status !== 'cancelled'
-      )
-
-      let classes = []
-      if (dateKey === today) classes.push('today')
-      if (dateKey === selected) classes.push('selected-date')
-      if (hasTasks) classes.push('has-tasks')
-      if (isOverdue) classes.push('has-overdue')
-
-      return classes.join(' ')
-    }
-    return null
-  }
-
-  const selectedDateTasksList = getTasksForDate(selectedDate)
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
               <CalendarIcon className="h-8 w-8 text-primary-600" />
@@ -140,128 +184,143 @@ export default function CalendarView() {
             </h1>
             <p className="mt-2 text-gray-600">View and manage your tasks by date</p>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1 bg-white rounded-lg p-1 border border-gray-200">
+          <button
+            onClick={handleCreateTask}
+            className="btn-primary flex items-center gap-2"
+          >
+            <Plus className="h-5 w-5" />
+            New Task
+          </button>
+        </div>
+
+        {/* Calendar Container */}
+        <div className="card p-0 overflow-hidden">
+          {/* Custom Navigation Bar */}
+          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-white">
+            <div className="flex items-center gap-2">
               <button
-                onClick={() => setViewMode('month')}
-                className={`p-2 rounded transition-colors ${
-                  viewMode === 'month'
-                    ? 'bg-primary-100 text-primary-600'
-                    : 'text-gray-600 hover:bg-gray-100'
+                onClick={handlePrev}
+                className="p-2 rounded hover:bg-gray-100 transition-colors"
+                title="Previous"
+              >
+                <ChevronLeft className="h-5 w-5 text-gray-600" />
+              </button>
+              <button
+                onClick={handleNext}
+                className="p-2 rounded hover:bg-gray-100 transition-colors"
+                title="Next"
+              >
+                <ChevronRight className="h-5 w-5 text-gray-600" />
+              </button>
+              <button
+                onClick={handleToday}
+                className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded transition-colors"
+              >
+                Today
+              </button>
+              <h2 className="text-xl font-semibold text-gray-900 ml-4">
+                {dateTitle || new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+              </h2>
+            </div>
+            
+            {/* View Type Buttons */}
+            <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+              <button
+                onClick={() => handleViewChange('dayGridMonth')}
+                className={`px-4 py-2 text-sm font-medium rounded transition-colors ${
+                  currentView === 'dayGridMonth'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
                 }`}
-                title="Month View"
               >
                 Month
               </button>
               <button
-                onClick={() => setViewMode('week')}
-                className={`p-2 rounded transition-colors ${
-                  viewMode === 'week'
-                    ? 'bg-primary-100 text-primary-600'
-                    : 'text-gray-600 hover:bg-gray-100'
+                onClick={() => handleViewChange('timeGridWeek')}
+                className={`px-4 py-2 text-sm font-medium rounded transition-colors ${
+                  currentView === 'timeGridWeek'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
                 }`}
-                title="Week View"
               >
                 Week
               </button>
+              <button
+                onClick={() => handleViewChange('timeGridDay')}
+                className={`px-4 py-2 text-sm font-medium rounded transition-colors ${
+                  currentView === 'timeGridDay'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                Day
+              </button>
+              <button
+                onClick={() => handleViewChange('listWeek')}
+                className={`px-4 py-2 text-sm font-medium rounded transition-colors ${
+                  currentView === 'listWeek' || currentView === 'listMonth'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                List
+              </button>
             </div>
-            <button
-              onClick={() => handleCreateTask(selectedDate)}
-              className="btn-primary flex items-center gap-2"
-            >
-              <Plus className="h-5 w-5" />
-              New Task
-            </button>
           </div>
-        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Calendar */}
-          <div className="lg:col-span-2">
-            <div className="card p-4">
-              <Calendar
-                onChange={handleDateClick}
-                value={selectedDate}
-                view={viewMode}
-                tileContent={tileContent}
-                tileClassName={tileClassName}
-                className="custom-calendar"
-                onClickDay={handleDateClick}
-                prevLabel={<ChevronLeft className="h-5 w-5" />}
-                nextLabel={<ChevronRight className="h-5 w-5" />}
-                prev2Label={null}
-                next2Label={null}
-              />
-
-              {/* Legend */}
-              <div className="mt-6 pt-4 border-t border-gray-200">
-                <div className="flex flex-wrap items-center gap-4 text-sm">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                    <span>Completed</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                    <span>Urgent</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-orange-500"></div>
-                    <span>High</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                    <span>Medium</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                    <span>Low</span>
-                  </div>
+          {/* FullCalendar */}
+          <div className="p-6">
+            {isLoading ? (
+              <div className="flex items-center justify-center h-96">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+                  <p className="mt-4 text-gray-600">Loading calendar...</p>
                 </div>
               </div>
-            </div>
-          </div>
-
-          {/* Selected Date Tasks */}
-          <div className="lg:col-span-1">
-            <div className="card flex flex-col h-full max-h-[calc(100vh-200px)]">
-              <div className="border-b border-gray-200 px-6 py-4 flex-shrink-0">
-                <h2 className="text-lg font-semibold text-gray-900 break-words">
-                  {selectedDate.toLocaleDateString('en-US', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  })}
-                </h2>
-                <button
-                  onClick={() => handleCreateTask(selectedDate)}
-                  className="mt-2 text-sm text-primary-600 hover:text-primary-700 font-medium"
-                >
-                  + Add task for this date
-                </button>
-              </div>
-
-              <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
-                {isLoading ? (
-                  <div className="text-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
-                    <p className="mt-2 text-gray-600">Loading tasks...</p>
-                  </div>
-                ) : selectedDateTasksList.length > 0 ? (
-                  selectedDateTasksList.map((task) => (
-                    <div key={task.id} onClick={() => handleEdit(task)} className="cursor-pointer">
-                      <TaskCard task={task} onEdit={handleEdit} />
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-center py-8">
-                    <CalendarIcon className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                    <p className="text-gray-500 font-medium">No tasks for this date</p>
-                    <p className="text-gray-400 text-sm mt-1">Click "Add task" to create one</p>
-                  </div>
-                )}
-              </div>
-            </div>
+            ) : (
+              <FullCalendar
+                ref={calendarRef}
+                plugins={[dayGridPlugin, timeGridPlugin, listPlugin, interactionPlugin]}
+                initialView="dayGridMonth"
+                headerToolbar={false}
+                events={events}
+                dateClick={handleDateClick}
+                eventClick={handleEventClick}
+                height="auto"
+                dayMaxEvents={3}
+                moreLinkClick="popover"
+                eventDisplay="block"
+                eventTimeFormat={{
+                  hour: 'numeric',
+                  minute: '2-digit',
+                  meridiem: 'short',
+                }}
+                slotMinTime="00:00:00"
+                slotMaxTime="24:00:00"
+                weekends={true}
+                editable={false}
+                selectable={true}
+                selectMirror={true}
+                dayHeaderFormat={{ weekday: 'short' }}
+                firstDay={0}
+                datesSet={updateDateTitle}
+                viewDidMount={updateDateTitle}
+                views={{
+                  dayGridMonth: {
+                    dayMaxEvents: 3,
+                    moreLinkClick: 'popover',
+                  },
+                  timeGridWeek: {
+                    slotMinTime: '00:00:00',
+                    slotMaxTime: '24:00:00',
+                  },
+                  timeGridDay: {
+                    slotMinTime: '00:00:00',
+                    slotMaxTime: '24:00:00',
+                  },
+                }}
+              />
+            )}
           </div>
         </div>
 
@@ -273,4 +332,3 @@ export default function CalendarView() {
     </div>
   )
 }
-

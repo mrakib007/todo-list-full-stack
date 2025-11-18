@@ -16,6 +16,19 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
+    optimizeDeps: {
+      include: [
+        '@fullcalendar/react',
+        '@fullcalendar/core',
+        '@fullcalendar/daygrid',
+        '@fullcalendar/timegrid',
+        '@fullcalendar/list',
+        '@fullcalendar/interaction',
+      ],
+    },
+    resolve: {
+      dedupe: ['@fullcalendar/core'],
+    },
   }
 })
 
