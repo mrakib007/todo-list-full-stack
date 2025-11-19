@@ -30,7 +30,7 @@ const createUser = async (userData) => {
   const { email, password, name, user_type = 'user' } = userData;
   
   // Prevent creation of additional admin users
-  if (user_type === 'super_admin' && email !== 'admin@todoapp.com') {
+  if (user_type === 'super_admin' && email !== process.env.ADMIN_EMAIL) {
     throw new Error('Cannot create additional admin users');
   }
   
@@ -58,23 +58,29 @@ const comparePassword = async (plainPassword, hashedPassword) => {
 
 const createAdminUser = async () => {
   const adminData = {
-    email: 'admin@todoapp.com',
-    password: 'admin123456',
-    name: 'Super Admin',
+    email: process.env.ADMIN_EMAIL,
+    password: process.env.ADMIN_PASSWORD || 'admin123456',
+    name: process.env.ADMIN_NAME || 'Super Admin',
     user_type: 'super_admin'
   };
-  
-  const existingAdmin = await findUserByEmail(adminData.email);
-  if (!existingAdmin) {
-    // Create admin with active status
-    const hashedPassword = await bcrypt.hash(adminData.password, 12);
-    const query = `
-      INSERT INTO users (email, password, name, user_type, status)
-      VALUES ($1, $2, $3, $4, 'active')
-      RETURNING id, email, name, user_type, status, created_at
-    `;
-    await pool.query(query, [adminData.email, hashedPassword, adminData.name, adminData.user_type]);
-    console.log('Super admin user created: admin@todoapp.com / admin123456');
+
+  const oldAdmin = await findUserByEmail('admin@todoapp.com');
+  if (oldAdmin) {
+    const query = `UPDATE users SET email = $1 WHERE email = 'admin@todoapp.com'`;
+    await pool.query(query, [adminData.email]);
+    console.log(`Admin email updated to: ${adminData.email}`);
+  } else {
+    const existingAdmin = await findUserByEmail(adminData.email);
+    if (!existingAdmin) {
+      const hashedPassword = await bcrypt.hash(adminData.password, 12);
+      const query = `
+        INSERT INTO users (email, password, name, user_type, status)
+        VALUES ($1, $2, $3, $4, 'active')
+        RETURNING id, email, name, user_type, status, created_at
+      `;
+      await pool.query(query, [adminData.email, hashedPassword, adminData.name, adminData.user_type]);
+      console.log(`Super admin user created: ${adminData.email}`);
+    }
   }
 };
 
