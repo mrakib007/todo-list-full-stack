@@ -15,6 +15,8 @@ const { authenticateToken } = require('./middleware/auth');
 const { notFoundHandler, errorHandler } = require('./middleware/errorHandler');
 const { createUsersTable, updateExistingUsersType, createAdminUser } = require('./models/userModel');
 const mindMapModel = require('./models/mindMapModel');
+const notificationService = require('./services/notificationService');
+const cron = require('node-cron');
 
 const app = express();
 
@@ -56,6 +58,7 @@ const initializeDatabase = async () => {
     await mindMapModel.createTable();
     await updateExistingUsersType();
     await createAdminUser();
+    await notificationService.initializeNotifications();
     console.log('Database tables initialized');
   } catch (error) {
     console.error('Database initialization error:', error);
@@ -88,12 +91,36 @@ const createTasksTable = async () => {
   }
 };
 
+// Setup cron jobs for email notifications
+const setupCronJobs = () => {
+  cron.schedule('0 * * * *', async () => {
+    await notificationService.sendNotificationsForTasksDueInHours(12, '12_hours');
+  }, {
+    scheduled: true,
+    timezone: "UTC"
+  });
+
+  cron.schedule('0 * * * *', async () => {
+    await notificationService.sendNotificationsForTasksDueInHours(6, '6_hours');
+  }, {
+    scheduled: true,
+    timezone: "UTC"
+  });
+};
+
 // Start server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, async () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`API Documentation available at http://localhost:${PORT}/api-docs`);
   await initializeDatabase();
+  
+  if (process.env.SMTP_USER && process.env.SMTP_PASSWORD) {
+    setupCronJobs();
+  } else {
+    console.warn('⚠️  Email notifications disabled: SMTP credentials not configured');
+    console.warn('   Set SMTP_USER and SMTP_PASSWORD in .env to enable email notifications');
+  }
 });
 
 module.exports = app;

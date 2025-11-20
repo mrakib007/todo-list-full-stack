@@ -15,6 +15,7 @@ A modern, feature-rich todo list application with mind mapping capabilities, bui
 - **Priority Levels** - Organize tasks with low, medium, high, and urgent priorities
 - **Status Tracking** - Track tasks through pending, in progress, completed, and cancelled states
 - **Due Dates** - Set and track due dates for your tasks
+- **Email Notifications** - Automatic email reminders 12 and 6 hours before task due dates
 - **Advanced Filtering** - Filter by status, priority, due date, and overdue tasks
 - **Search Functionality** - Quick search across all your tasks
 - **Bulk Operations** - Delete or update multiple tasks at once
@@ -74,6 +75,8 @@ A modern, feature-rich todo list application with mind mapping capabilities, bui
 - **Express Validator** - Input validation
 - **Helmet** - Security headers
 - **Swagger** - API documentation
+- **Nodemailer** - Email notifications
+- **Node-cron** - Scheduled task reminders
 
 ## 📦 Installation
 
@@ -118,6 +121,14 @@ JWT_SECRET=your_super_secret_jwt_key_here
 
 # Environment
 NODE_ENV=development
+
+# Email Configuration (Optional - for task reminders)
+# See EMAIL_SETUP.md for detailed setup instructions
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=your-email@gmail.com
+SMTP_PASSWORD=your-app-password
 ```
 
 4. Create the PostgreSQL database:
