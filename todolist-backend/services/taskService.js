@@ -1,5 +1,38 @@
 const taskModel = require('../models/taskModel');
 
+const formatDueDateForDatabase = (value) => {
+  if (!value) return null
+
+  // If it's a string, try to match ISO/local timestamp (with T or space)
+  if (typeof value === 'string') {
+    const match = value.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(:(\d{2}))?$/)
+    if (match) {
+      const year = match[1]
+      const month = match[2]
+      const day = match[3]
+      const hours = match[4]
+      const minutes = match[5]
+      const seconds = match[7] || '00'
+      return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+    }
+  }
+
+  // Otherwise, try to parse as Date
+  const dateObj = new Date(value)
+  if (isNaN(dateObj.getTime())) {
+    throw new Error('Invalid due date format')
+  }
+
+  const year = dateObj.getFullYear()
+  const month = String(dateObj.getMonth() + 1).padStart(2, '0')
+  const day = String(dateObj.getDate()).padStart(2, '0')
+  const hours = String(dateObj.getHours()).padStart(2, '0')
+  const minutes = String(dateObj.getMinutes()).padStart(2, '0')
+  const seconds = String(dateObj.getSeconds()).padStart(2, '0')
+
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+}
+
 const taskService = {
   // Create new task
   createTask: async (userId, title, description, priority, dueDate = null) => {
@@ -12,15 +45,12 @@ const taskService = {
       throw new Error('Invalid priority. Must be: low, medium, high, or urgent');
     }
 
-    // Validate due date if provided
+    let formattedDueDate = null
     if (dueDate) {
-      const dueDateObj = new Date(dueDate);
-      if (isNaN(dueDateObj.getTime())) {
-        throw new Error('Invalid due date format');
-      }
+      formattedDueDate = formatDueDateForDatabase(dueDate)
     }
 
-    return await taskModel.create(userId, title.trim(), description?.trim(), priority, dueDate);
+    return await taskModel.create(userId, title.trim(), description?.trim(), priority, formattedDueDate);
   },
 
   // Get all tasks for user
@@ -66,11 +96,7 @@ const taskService = {
       if (dueDate === '' || dueDate === null) {
         dueDate = null; // Allow clearing due date
       } else {
-        const dueDateObj = new Date(dueDate);
-        if (isNaN(dueDateObj.getTime())) {
-          throw new Error('Invalid due date format');
-        }
-        dueDate = dueDateObj.toISOString();
+        dueDate = formatDueDateForDatabase(dueDate)
       }
     }
 

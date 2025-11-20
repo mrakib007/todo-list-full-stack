@@ -1,6 +1,45 @@
 const taskService = require('../services/taskService');
 const { validationResult } = require('express-validator');
 
+// Helper function to format date from PostgreSQL to ISO string without timezone
+const formatDateForResponse = (dateValue) => {
+  if (!dateValue) return null;
+  
+  // If it's already a string in the right format, return it
+  if (typeof dateValue === 'string') {
+    // Check if it's already in YYYY-MM-DDTHH:mm:ss format
+    if (/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}/.test(dateValue)) {
+      return dateValue.replace(' ', 'T');
+    }
+  }
+  
+  // If it's a Date object, format it as YYYY-MM-DDTHH:mm:ss (no timezone)
+  const date = dateValue instanceof Date ? dateValue : new Date(dateValue);
+  if (isNaN(date.getTime())) return null;
+  
+  // PostgreSQL TIMESTAMP WITHOUT TIME ZONE is timezone-naive
+  // The pg library returns it as a Date object, but we need to extract the UTC components
+  // to get the exact stored time without timezone conversion
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(date.getUTCDate()).padStart(2, '0');
+  const hours = String(date.getUTCHours()).padStart(2, '0');
+  const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+  const seconds = String(date.getUTCSeconds()).padStart(2, '0');
+  
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+};
+
+// Helper function to format task dates in response
+const formatTaskDates = (task) => {
+  if (!task) return task;
+  const formatted = { ...task };
+  if (task.due_date) {
+    formatted.due_date = formatDateForResponse(task.due_date);
+  }
+  return formatted;
+};
+
 const taskController = {
   // Create new task
   createTask: async (req, res) => {
@@ -21,7 +60,7 @@ const taskController = {
       res.status(201).json({
         success: true,
         message: 'Task created successfully',
-        data: newTask
+        data: formatTaskDates(newTask)
       });
     } catch (error) {
       res.status(400).json({ 
@@ -42,7 +81,7 @@ const taskController = {
         return res.json({
           success: true,
           count: tasks.length,
-          data: tasks
+          data: tasks.map(formatTaskDates)
         });
       }
 
@@ -51,7 +90,7 @@ const taskController = {
       res.json({
         success: true,
         count: tasks.length,
-        data: tasks
+        data: tasks.map(formatTaskDates)
       });
     } catch (error) {
       res.status(400).json({ 
@@ -71,7 +110,7 @@ const taskController = {
       
       res.json({
         success: true,
-        data: task
+        data: formatTaskDates(task)
       });
     } catch (error) {
       const statusCode = error.message === 'Task not found' ? 404 : 400;
@@ -102,7 +141,7 @@ const taskController = {
       res.json({
         success: true,
         message: 'Task updated successfully',
-        data: updatedTask
+        data: formatTaskDates(updatedTask)
       });
     } catch (error) {
       const statusCode = error.message === 'Task not found' ? 404 : 400;
@@ -154,7 +193,7 @@ const taskController = {
       res.json({
         success: true,
         message: 'Task status updated successfully',
-        data: updatedTask
+        data: formatTaskDates(updatedTask)
       });
     } catch (error) {
       const statusCode = error.message === 'Task not found' ? 404 : 400;
@@ -201,7 +240,7 @@ const taskController = {
       res.json({
         success: true,
         count: tasks.length,
-        data: tasks
+        data: tasks.map(formatTaskDates)
       });
     } catch (error) {
       res.status(400).json({ 
@@ -230,7 +269,7 @@ const taskController = {
         success: true,
         message: `${deletedTasks.length} task(s) deleted successfully`,
         count: deletedTasks.length,
-        data: deletedTasks
+        data: deletedTasks.map(formatTaskDates)
       });
     } catch (error) {
       res.status(400).json({ 
@@ -267,7 +306,7 @@ const taskController = {
         success: true,
         message: `${updatedTasks.length} task(s) status updated successfully`,
         count: updatedTasks.length,
-        data: updatedTasks
+        data: updatedTasks.map(formatTaskDates)
       });
     } catch (error) {
       res.status(400).json({ 
@@ -285,7 +324,7 @@ const taskController = {
       res.json({
         success: true,
         count: tasks.length,
-        data: tasks
+        data: tasks.map(formatTaskDates)
       });
     } catch (error) {
       res.status(400).json({ 
